@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:7.0
+    container_name: oid4vci-mongodb
+    restart: always
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - oid4vci-net
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: oid4vci-app
+    restart: always
+    ports:
+      - "3550:5000"
+    environment:
+      - NODE_ENV=production
+      - PORT=5000
+      - MONGODB_URI=mongodb://mongodb:27017/oid4vci
+      - ACAPY_URL=http://host.docker.internal:8021
+    depends_on:
+      - mongodb
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - oid4vci-net
+
+networks:
+  oid4vci-net:
+    driver: bridge
+
+volumes:
+  mongo_data:
+    driver: local

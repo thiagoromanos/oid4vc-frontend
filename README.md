@@ -90,4 +90,4 @@ The application integrates with the ACA-Py OID4VCI plugin specified in `acapy-cp
 - `GET /oid4vci/credential-supported/records/{supported_cred_id}`
 - `POST /oid4vci/exchange/create`
 - `GET /oid4vci/credential-offer`
-# oid4vc-frontend
+
