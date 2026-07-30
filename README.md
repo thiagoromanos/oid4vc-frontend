@@ -1,3 +1,5 @@
+**Disclaimer:** This entire project was made by an AI.
+
 # OID4VCI SD-JWT Credential Manager
 
 A complete React + Express + MongoDB web interface designed for managing OID4VCI SD-JWT credentials, provisioning subwallets via ACA-Py Multitenancy, setting localized display labels in **en-US** and **pt-BR**, creating credential exchanges, and rendering **Credential Offer QR Codes**.
