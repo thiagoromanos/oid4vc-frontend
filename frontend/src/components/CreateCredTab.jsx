@@ -16,7 +16,7 @@ export default function CreateCredTab({ onCredCreated }) {
       locale: 'en-US',
       background_color: '#1e293b',
       text_color: '#ffffff',
-      logoUrl: '',
+      logoUri: '',
       logoAltText: ''
     },
     {
@@ -24,7 +24,7 @@ export default function CreateCredTab({ onCredCreated }) {
       locale: 'pt-BR',
       background_color: '#1e293b',
       text_color: '#ffffff',
-      logoUrl: '',
+      logoUri: '',
       logoAltText: ''
     }
   ]);
@@ -51,7 +51,7 @@ export default function CreateCredTab({ onCredCreated }) {
         locale: 'es-ES',
         background_color: '#1e293b',
         text_color: '#ffffff',
-        logoUrl: '',
+        logoUri: '',
         logoAltText: ''
       }
     ]);
@@ -111,9 +111,9 @@ export default function CreateCredTab({ onCredCreated }) {
           background_color: d.background_color || '#1e293b',
           text_color: d.text_color || '#ffffff'
         };
-        if (d.logoUrl && d.logoUrl.trim()) {
+        if (d.logoUri && d.logoUri.trim()) {
           item.logo = {
-            url: d.logoUrl.trim(),
+            uri: d.logoUri.trim(),
             ...(d.logoAltText && d.logoAltText.trim() ? { alt_text: d.logoAltText.trim() } : {})
           };
         }
@@ -293,30 +293,48 @@ export default function CreateCredTab({ onCredCreated }) {
 
                   <div className="form-group">
                     <label>Background Color</label>
-                    <input
-                      type="text"
-                      value={disp.background_color}
-                      onChange={(e) => updateDisplayEntry(index, 'background_color', e.target.value)}
-                      placeholder="#1e293b"
-                    />
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <input
+                        type="color"
+                        value={disp.background_color || '#1e293b'}
+                        onChange={(e) => updateDisplayEntry(index, 'background_color', e.target.value)}
+                        style={{ width: '42px', height: '38px', padding: '2px', cursor: 'pointer', borderRadius: '6px', background: 'transparent', border: '1px solid rgba(255, 255, 255, 0.2)' }}
+                      />
+                      <input
+                        type="text"
+                        value={disp.background_color}
+                        onChange={(e) => updateDisplayEntry(index, 'background_color', e.target.value)}
+                        placeholder="#1e293b"
+                        style={{ flex: 1 }}
+                      />
+                    </div>
                   </div>
 
                   <div className="form-group">
                     <label>Text Color</label>
-                    <input
-                      type="text"
-                      value={disp.text_color}
-                      onChange={(e) => updateDisplayEntry(index, 'text_color', e.target.value)}
-                      placeholder="#ffffff"
-                    />
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <input
+                        type="color"
+                        value={disp.text_color || '#ffffff'}
+                        onChange={(e) => updateDisplayEntry(index, 'text_color', e.target.value)}
+                        style={{ width: '42px', height: '38px', padding: '2px', cursor: 'pointer', borderRadius: '6px', background: 'transparent', border: '1px solid rgba(255, 255, 255, 0.2)' }}
+                      />
+                      <input
+                        type="text"
+                        value={disp.text_color}
+                        onChange={(e) => updateDisplayEntry(index, 'text_color', e.target.value)}
+                        placeholder="#ffffff"
+                        style={{ flex: 1 }}
+                      />
+                    </div>
                   </div>
 
                   <div className="form-group">
-                    <label>Logo URL <span className="label-hint">Optional</span></label>
+                    <label>Logo URI <span className="label-hint">Optional (OID4VCI spec)</span></label>
                     <input
                       type="url"
-                      value={disp.logoUrl}
-                      onChange={(e) => updateDisplayEntry(index, 'logoUrl', e.target.value)}
+                      value={disp.logoUri}
+                      onChange={(e) => updateDisplayEntry(index, 'logoUri', e.target.value)}
                       placeholder="https://example.com/logo.png"
                     />
                   </div>

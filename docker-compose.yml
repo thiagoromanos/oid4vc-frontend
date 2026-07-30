@@ -10,7 +10,7 @@ services:
     volumes:
       - mongo_data:/data/db
     networks:
-      - oid4vci-net
+      - frontend-oid4vci-net
 
   app:
     build:
@@ -30,11 +30,13 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     networks:
-      - oid4vci-net
+      - frontend-oid4vci-net
 
 networks:
-  oid4vci-net:
+  frontend-oid4vci-net:
     driver: bridge
+    external: ${NETWORK_EXTERNAL:-false}
+      
 
 volumes:
   mongo_data:
