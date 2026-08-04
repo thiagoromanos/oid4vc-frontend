@@ -13,13 +13,14 @@ services:
       - frontend-oid4vci-net
 
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: oid4vci-app
+    image: ghcr.io/thiagoromanos/oid4vc-frontend:beta1
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile
+    container_name: acapy-oid4vc-frontent
     restart: always
     ports:
-      - "3550:5000"
+      - "${EXTERNAL_FRONTEND_PORT:-5000}:5000"
     environment:
       - NODE_ENV=production
       - PORT=5000
@@ -35,6 +36,7 @@ services:
 networks:
   frontend-oid4vci-net:
     driver: bridge
+    name: ${NETWORK_NAME:-frontend-oid4vci-net}
     external: ${NETWORK_EXTERNAL:-false}
       
 

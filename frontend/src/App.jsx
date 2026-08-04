@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Server, FileCode, Database, RefreshCw, History, Key, CheckCircle, AlertCircle } from 'lucide-react';
+import { Shield, Server, FileCode, Database, RefreshCw, History, Key, ShieldCheck } from 'lucide-react';
 import axios from 'axios';
 
 import ConfigTab from './components/ConfigTab';
@@ -8,6 +8,7 @@ import StoredCredsTab from './components/StoredCredsTab';
 import DidManagerTab from './components/DidManagerTab';
 import CreateExchangeTab from './components/CreateExchangeTab';
 import ExchangeHistoryTab from './components/ExchangeHistoryTab';
+import ProofPresentationTab from './components/ProofPresentationTab';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('config');
@@ -83,8 +84,8 @@ export default function App() {
             <Shield className="w-6 h-6" />
           </div>
           <div className="brand-text">
-            <h1>OID4VCI Credential Manager</h1>
-            <p>SD-JWT Issuer, DID Manager (did:key / did:peer), Localization & Offer QR Code System</p>
+            <h1>OID4VCI & OID4VP Credential Manager</h1>
+            <p>SD-JWT Issuer & Verifier, DID Manager, Presentation & Offer QR Code System</p>
           </div>
         </div>
 
@@ -139,6 +140,13 @@ export default function App() {
         </button>
 
         <button
+          className={`tab-btn ${activeTab === 'presentation' ? 'active' : ''}`}
+          onClick={() => setActiveTab('presentation')}
+        >
+          <ShieldCheck className="w-4 h-4" /> Proof Presentation
+        </button>
+
+        <button
           className={`tab-btn ${activeTab === 'history' ? 'active' : ''}`}
           onClick={() => setActiveTab('history')}
         >
@@ -180,6 +188,10 @@ export default function App() {
             didRecords={didRecords}
             onExchangeCreated={() => fetchStoredCreds()}
           />
+        )}
+
+        {activeTab === 'presentation' && (
+          <ProofPresentationTab storedCreds={storedCreds} />
         )}
 
         {activeTab === 'history' && <ExchangeHistoryTab />}
