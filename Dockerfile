@@ -26,4 +26,4 @@ ENV NODE_ENV=production
 ENV PORT=5000
 ENV MONGODB_URI=mongodb://mongodb:27017/oid4vci
 
-CMD ["node", "backend/server.js"]
+CMD ["node", "--trace-warnings", "backend/server.js"]

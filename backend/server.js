@@ -482,7 +482,22 @@ app.get('/api/exchange/records', async (req, res) => {
   }
 });
 
-// --- OID4VP PROOF PRESENTATION ENDPOINTS ---
+// Create DCQL Query: POST /oid4vp/dcql/queries
+app.post('/api/dcql-query/create', async (req, res) => {
+  try {
+    const { client } = await getAcapyClient();
+    const { credentials } = req.body;
+
+    console.log('Sending /oid4vp/dcql/queries to ACA-Py:', JSON.stringify({ credentials }, null, 2));
+    const response = await client.post('/oid4vp/dcql/queries', { credentials });
+    res.json(response.data);
+  } catch (err) {
+    console.error('Create DCQL query error:', err.response?.data || err.message);
+    res.status(err.response?.status || 500).json({
+      error: formatError(err)
+    });
+  }
+});
 
 // Create Presentation Definition: POST /oid4vp/presentation-definition
 app.post('/api/presentation-definition/create', async (req, res) => {
@@ -494,21 +509,22 @@ app.post('/api/presentation-definition/create', async (req, res) => {
       return res.status(400).json({ error: 'pres_def object is required' });
     }
 
-    console.log('Sending /oid4vp/presentation-definition to ACA-Py:', JSON.stringify({ pres_def }, null, 2));
+    const payload = pres_def.pres_def ? pres_def : { pres_def };
+    console.log('Sending /oid4vp/presentation-definition to ACA-Py:', JSON.stringify(payload, null, 2));
 
-    const response = await client.post('/oid4vp/presentation-definition', { pres_def });
+    const response = await client.post('/oid4vp/presentation-definition', payload);
     const resData = response.data; // { pres_def_id, pres_def }
 
-    const pres_def_id = resData.pres_def_id || pres_def.id;
+    const pres_def_id = resData.pres_def_id || resData.pres_def?.id || pres_def.id;
 
     // Save in MongoDB
     const savedRecord = await PresentationDef.findOneAndUpdate(
       { pres_def_id },
       {
         pres_def_id,
-        name: name || pres_def.name || pres_def_id,
-        purpose: purpose || pres_def.purpose || '',
-        pres_def: resData.pres_def || pres_def,
+        name: name || pres_def.name || pres_def.pres_def?.name || pres_def_id,
+        purpose: purpose || pres_def.purpose || pres_def.pres_def?.purpose || '',
+        pres_def: resData.pres_def || pres_def.pres_def || pres_def,
         raw_record: resData
       },
       { upsert: true, new: true }
@@ -567,27 +583,33 @@ app.post('/api/presentation-request/create', async (req, res) => {
     const { client } = await getAcapyClient();
     let { pres_def_id, pres_def, dcql_query_id, vp_formats } = req.body;
 
+    console.log('[DEBUG OID4VP] Received request to create presentation request:', JSON.stringify({ pres_def_id, pres_def, dcql_query_id, vp_formats }, null, 2));
+
     // Default vp_formats if omitted
     if (!vp_formats) {
       vp_formats = {
         "vc+sd-jwt": {
-          "sd-jwt_alg_values": ["ES256K", "EdDSA", "ES256"]
+          "sd-jwt_alg_values": ["ES256", "ES384"],
+          "kb-jwt_alg_values": ["ES256", "ES384"]
         }
       };
     }
 
     // If inline pres_def object provided and no pres_def_id, create definition first
     if (!pres_def_id && pres_def && !dcql_query_id) {
-      const presDefRes = await client.post('/oid4vp/presentation-definition', { pres_def });
-      pres_def_id = presDefRes.data.pres_def_id || pres_def.id;
+      const presDefPayload = pres_def.pres_def ? pres_def : { pres_def };
+      console.log('[DEBUG OID4VP] Creating presentation-definition in ACA-Py:', JSON.stringify(presDefPayload, null, 2));
+      const presDefRes = await client.post('/oid4vp/presentation-definition', presDefPayload);
+      console.log('[DEBUG OID4VP] Presentation definition response from ACA-Py:', JSON.stringify(presDefRes.data, null, 2));
+      pres_def_id = presDefRes.data.pres_def_id || presDefRes.data.pres_def?.id || pres_def.id;
 
       await PresentationDef.findOneAndUpdate(
         { pres_def_id },
         {
           pres_def_id,
-          name: pres_def.name || pres_def_id,
-          purpose: pres_def.purpose || '',
-          pres_def: presDefRes.data.pres_def || pres_def,
+          name: pres_def.name || pres_def.pres_def?.name || pres_def_id,
+          purpose: pres_def.purpose || pres_def.pres_def?.purpose || '',
+          pres_def: presDefRes.data.pres_def || pres_def.pres_def || pres_def,
           raw_record: presDefRes.data
         },
         { upsert: true }
@@ -604,39 +626,49 @@ app.post('/api/presentation-request/create', async (req, res) => {
     if (pres_def_id) reqPayload.pres_def_id = pres_def_id;
     if (dcql_query_id) reqPayload.dcql_query_id = dcql_query_id;
 
-    console.log('Sending /oid4vp/request to ACA-Py:', JSON.stringify(reqPayload, null, 2));
+    console.log('[DEBUG OID4VP] Sending /oid4vp/request to ACA-Py:', JSON.stringify(reqPayload, null, 2));
 
     const response = await client.post('/oid4vp/request', reqPayload);
     const data = response.data; // { presentation, request, request_uri }
+    console.log('[DEBUG OID4VP] ACA-Py /oid4vp/request response data:', JSON.stringify(data, null, 2));
 
-    const presentation_id = data.presentation?.presentation_id;
-    const request_id = data.request?.request_id;
-    const request_uri = data.request_uri;
+    const presentation_id = data.presentation_id || data.presentation?.presentation_id || data.request?.presentation_id || data.request_id || data.request?.request_id || `pres_${Date.now()}`;
+    const request_id = data.request_id || data.request?.request_id || presentation_id;
+    const request_uri = data.request_uri || data.request?.request_uri || '';
+
+    const initialStatus = data.presentation?.state || data.presentation?.status || data.state || data.status || 'request-created';
+    const initialMatched = data.presentation?.matched_credentials || data.matched_credentials || {};
 
     // Save in MongoDB
-    const savedRecord = await PresentationRecord.create({
-      presentation_id,
-      request_id,
-      pres_def_id,
-      request_uri,
-      status: data.presentation?.state || 'request-created',
-      verified: Boolean(data.presentation?.verified),
-      verified_claims: data.presentation?.matched_credentials || {},
-      matched_credentials: data.presentation?.matched_credentials || {},
-      errors: data.presentation?.errors || [],
-      raw_record: data
-    });
+    const savedRecord = await PresentationRecord.findOneAndUpdate(
+      { presentation_id },
+      {
+        presentation_id,
+        request_id,
+        pres_def_id: pres_def_id || '',
+        request_uri,
+        status: initialStatus,
+        verified: initialStatus === 'presentation-valid' || Boolean(data.presentation?.verified || data.verified),
+        verified_claims: initialMatched,
+        matched_credentials: initialMatched,
+        errors: data.presentation?.errors || data.errors || [],
+        raw_record: data,
+        updatedAt: new Date()
+      },
+      { upsert: true, new: true }
+    );
 
     res.json({
       success: true,
       presentation_id,
       request_id,
       request_uri,
+      status: initialStatus,
       presentationRecord: savedRecord,
       raw: data
     });
   } catch (err) {
-    console.error('Create presentation request error:', err.response?.data || err.message);
+    console.error('[DEBUG OID4VP] Create presentation request error:', err.response?.data || err.message);
     res.status(err.response?.status || 500).json({
       error: formatError(err)
     });
@@ -651,10 +683,13 @@ app.get('/api/presentation/records', async (req, res) => {
     try {
       const liveRes = await client.get('/oid4vp/presentations');
       const liveItems = liveRes.data.results || [];
+      console.log(`[DEBUG OID4VP] Fetched ${liveItems.length} presentation records from ACA-Py`);
       for (const item of liveItems) {
         if (item && item.presentation_id) {
           const status = item.state || item.status || 'request-created';
           const verified = status === 'presentation-valid' || Boolean(item.verified);
+          const matched_credentials = item.matched_credentials || {};
+          const verified_claims = item.verified_claims || matched_credentials;
 
           await PresentationRecord.findOneAndUpdate(
             { presentation_id: item.presentation_id },
@@ -664,8 +699,8 @@ app.get('/api/presentation/records', async (req, res) => {
               pres_def_id: item.pres_def_id,
               status,
               verified,
-              verified_claims: item.matched_credentials || {},
-              matched_credentials: item.matched_credentials || {},
+              verified_claims,
+              matched_credentials,
               errors: item.errors || [],
               raw_record: item,
               updatedAt: new Date()
@@ -675,7 +710,11 @@ app.get('/api/presentation/records', async (req, res) => {
         }
       }
     } catch (acapyErr) {
-      console.warn('Live ACA-Py fetch for presentations failed, using DB cache:', acapyErr.message);
+      const errMsg = acapyErr.response?.data || acapyErr.message;
+      console.warn('[DEBUG OID4VP] Live ACA-Py fetch for presentations failed:', errMsg);
+      if (typeof errMsg === 'string' && (errMsg.includes('OID4VPPresentation') || errMsg.includes('missing 2 required keyword-only arguments'))) {
+        console.error('[CRITICAL ACA-PY STORAGE CORRUPTION] ACA-Py database contains corrupted legacy presentation records missing required state/request_id tags. SOLUTION: Create a new Tenant Subwallet in the Config tab to reset ACA-Py wallet storage.');
+      }
     }
 
     const records = await PresentationRecord.find().sort({ createdAt: -1 });
@@ -694,17 +733,23 @@ app.get('/api/presentation/records/:presentation_id', async (req, res) => {
 
     try {
       const response = await client.get(`/oid4vp/presentation/${presentation_id}`);
-      acapyData = response.data; // { presentation_id, status, verified_claims, errors }
+      acapyData = response.data; // { presentation_id, state/status, matched_credentials, verified, errors }
+      console.log(`[DEBUG OID4VP] Single presentation fetch for ${presentation_id} from ACA-Py:`, JSON.stringify(acapyData, null, 2));
     } catch (acapyErr) {
-      console.warn(`Live ACA-Py fetch for presentation ${presentation_id} failed:`, acapyErr.message);
+      const errMsg = acapyErr.response?.data || acapyErr.message;
+      console.warn(`[DEBUG OID4VP] Live ACA-Py fetch for presentation ${presentation_id} failed:`, errMsg);
+      if (typeof errMsg === 'string' && (errMsg.includes('OID4VPPresentation') || errMsg.includes('missing 2 required keyword-only arguments'))) {
+        console.error(`[CRITICAL ACA-PY STORAGE CORRUPTION] ACA-Py record ${presentation_id} is corrupted in ACA-Py storage. SOLUTION: Create a new Tenant Subwallet in the Config tab.`);
+      }
     }
 
     let localRecord = await PresentationRecord.findOne({ presentation_id });
 
     if (acapyData) {
-      const status = acapyData.status || acapyData.state || (localRecord ? localRecord.status : 'unknown');
+      const status = acapyData.state || acapyData.status || (localRecord ? localRecord.status : 'unknown');
       const verified = status === 'presentation-valid' || Boolean(acapyData.verified);
-      const verified_claims = acapyData.verified_claims || acapyData.matched_credentials || (localRecord ? localRecord.verified_claims : {});
+      const matched_credentials = acapyData.matched_credentials || (localRecord ? localRecord.matched_credentials : {});
+      const verified_claims = acapyData.verified_claims || matched_credentials || (localRecord ? localRecord.verified_claims : {});
       const errors = acapyData.errors || (localRecord ? localRecord.errors : []);
 
       localRecord = await PresentationRecord.findOneAndUpdate(
@@ -713,6 +758,7 @@ app.get('/api/presentation/records/:presentation_id', async (req, res) => {
           status,
           verified,
           verified_claims,
+          matched_credentials,
           errors,
           raw_record: acapyData,
           updatedAt: new Date()
