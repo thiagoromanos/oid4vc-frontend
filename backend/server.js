@@ -641,8 +641,10 @@ app.post('/api/presentation-request/create', async (req, res) => {
     const presentation_id = data.presentation_id || data.presentation?.presentation_id || data.request?.presentation_id || data.request_id || data.request?.request_id || `pres_${Date.now()}`;
     const request_id = data.request_id || data.request?.request_id || presentation_id;
     const request_uri = data.request_uri || data.request?.request_uri || '';
-
-    const initialStatus = data.presentation?.state || data.presentation?.status || data.state || data.status || 'request-created';
+    
+    // CRITICAL: Extract state and request_id from response
+    // These are REQUIRED by ACA-Py's OID4VPPresentation model
+    const state = data.presentation?.state || data.state || 'request-created';
     const initialMatched = data.presentation?.matched_credentials || data.matched_credentials || {};
 
     // Save in MongoDB
@@ -653,8 +655,8 @@ app.post('/api/presentation-request/create', async (req, res) => {
         request_id,
         pres_def_id: pres_def_id || '',
         request_uri,
-        status: initialStatus,
-        verified: initialStatus === 'presentation-valid' || Boolean(data.presentation?.verified || data.verified),
+        status: state,
+        verified: state === 'presentation-valid' || Boolean(data.presentation?.verified || data.verified),
         verified_claims: initialMatched,
         matched_credentials: initialMatched,
         errors: data.presentation?.errors || data.errors || [],
@@ -669,7 +671,7 @@ app.post('/api/presentation-request/create', async (req, res) => {
       presentation_id,
       request_id,
       request_uri,
-      status: initialStatus,
+      status: state,
       presentationRecord: savedRecord,
       raw: data
     });
@@ -719,7 +721,7 @@ app.get('/api/presentation/records', async (req, res) => {
       const errMsg = acapyErr.response?.data || acapyErr.message;
       console.warn('[DEBUG OID4VP] Live ACA-Py fetch for presentations failed:', errMsg);
       if (typeof errMsg === 'string' && (errMsg.includes('OID4VPPresentation') || errMsg.includes('missing 2 required keyword-only arguments'))) {
-        console.error('[CRITICAL ACA-PY STORAGE CORRUPTION] ACA-Py database contains corrupted legacy presentation records missing required state/request_id tags. SOLUTION: Create a new Tenant Su[...]
+        console.error('[CRITICAL ACA-PY STORAGE CORRUPTION] ACA-Py database contains corrupted legacy presentation records missing required state/request_id tags. This usually happens when presentations are created without proper state initialization. SOLUTION: Create a new Tenant or manually clean the database.');
       }
     }
 
