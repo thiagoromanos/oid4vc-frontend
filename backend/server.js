@@ -64,7 +64,7 @@ function formatError(err) {
     msg = msg.message || msg.error || JSON.stringify(msg);
   }
   if (err.code === 'ECONNREFUSED' || (typeof msg === 'string' && msg.includes('ECONNREFUSED'))) {
-    return `${msg}. TIP: If the app is running in Docker and ACA-Py is running on your host machine, 'localhost' refers to the container. Use 'http://host.docker.internal:3001' (or host IP) instead of 'http://localhost:3001'.`;
+    return `${msg}. TIP: If the app is running in Docker and ACA-Py is running on your host machine, 'localhost' refers to the container. Use 'http://host.docker.internal:3001' (or host IP) instea[...]
   }
   return msg;
 }
@@ -597,11 +597,17 @@ app.post('/api/presentation-request/create', async (req, res) => {
 
     // If inline pres_def object provided and no pres_def_id, create definition first
     if (!pres_def_id && pres_def && !dcql_query_id) {
+      // Ensure proper wrapping: pres_def should be { pres_def: { id, purpose, ... } }
       const presDefPayload = pres_def.pres_def ? pres_def : { pres_def };
       console.log('[DEBUG OID4VP] Creating presentation-definition in ACA-Py:', JSON.stringify(presDefPayload, null, 2));
+      
       const presDefRes = await client.post('/oid4vp/presentation-definition', presDefPayload);
       console.log('[DEBUG OID4VP] Presentation definition response from ACA-Py:', JSON.stringify(presDefRes.data, null, 2));
-      pres_def_id = presDefRes.data.pres_def_id || presDefRes.data.pres_def?.id || pres_def.id;
+      
+      // Extract the ID from response - handle various response structures
+      pres_def_id = presDefRes.data.pres_def_id || presDefRes.data.pres_def?.id || pres_def.pres_def?.id || pres_def.id;
+      
+      console.log('[DEBUG OID4VP] Extracted pres_def_id:', pres_def_id);
 
       await PresentationDef.findOneAndUpdate(
         { pres_def_id },
@@ -713,7 +719,7 @@ app.get('/api/presentation/records', async (req, res) => {
       const errMsg = acapyErr.response?.data || acapyErr.message;
       console.warn('[DEBUG OID4VP] Live ACA-Py fetch for presentations failed:', errMsg);
       if (typeof errMsg === 'string' && (errMsg.includes('OID4VPPresentation') || errMsg.includes('missing 2 required keyword-only arguments'))) {
-        console.error('[CRITICAL ACA-PY STORAGE CORRUPTION] ACA-Py database contains corrupted legacy presentation records missing required state/request_id tags. SOLUTION: Create a new Tenant Subwallet in the Config tab to reset ACA-Py wallet storage.');
+        console.error('[CRITICAL ACA-PY STORAGE CORRUPTION] ACA-Py database contains corrupted legacy presentation records missing required state/request_id tags. SOLUTION: Create a new Tenant Su[...]
       }
     }
 
