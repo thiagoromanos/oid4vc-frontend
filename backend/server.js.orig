@@ -10,6 +10,7 @@ const SupportedCredential = require('./models/SupportedCredential');
 const ExchangeRecord = require('./models/ExchangeRecord');
 const DidRecord = require('./models/DidRecord');
 const PresentationDef = require('./models/PresentationDef');
+const PresentationRecord = require('./models/PresentationRecord');
 
 const app = express();
 app.use(cors());
@@ -18,47 +19,20 @@ app.use(express.json());
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/oid4vci';
 const PORT = process.env.PORT || 5000;
 
-// Auth-server env-var defaults (override with frontend UI values at any time)
-const ENV_AUTH_SERVER_URL          = process.env.AUTH_SERVER_URL           || '';
-const ENV_AUTH_SERVER_ADMIN_TOKEN  = process.env.AUTH_SERVER_ADMIN_TOKEN   || '';
-const ENV_AUTH_SERVER_PUBLIC_URL   = process.env.AUTH_SERVER_PUBLIC_URL    || '';
-const ENV_AUTH_SERVER_PRIVATE_URL  = process.env.AUTH_SERVER_PRIVATE_URL   || '';
-const ENV_TENANT_SECRET            = process.env.TENANT_SECRET             || '';
-
-// In-memory cache for presentations (like the demo)
-const presentationCache = new Map();
-
 // Connect to MongoDB
 mongoose.connect(MONGODB_URI)
   .then(() => console.log(`Connected to MongoDB at ${MONGODB_URI}`))
   .catch(err => console.error('MongoDB connection error:', err));
 
-// Helper to get active configuration.
-// Env vars act as default values: they populate the document on first creation and
-// fill in any field that the user has left blank (empty string) in the DB.
+// Helper to get active configuration
 async function getActiveConfig() {
   let config = await Config.findOne({ key: 'global_config' });
   if (!config) {
     config = await Config.create({
       key: 'global_config',
-      acapyUrl:              process.env.ACAPY_URL          || 'http://localhost:8021',
-      bearerToken:           process.env.BEARER_TOKEN        || '',
-      authServerUrl:         ENV_AUTH_SERVER_URL,
-      authServerAdminToken:  ENV_AUTH_SERVER_ADMIN_TOKEN,
-      authServerPublicUrl:   ENV_AUTH_SERVER_PUBLIC_URL,
-      authServerPrivateUrl:  ENV_AUTH_SERVER_PRIVATE_URL,
-      tenantSecret:          ENV_TENANT_SECRET,
+      acapyUrl: process.env.ACAPY_URL || 'http://localhost:8021',
+      bearerToken: process.env.BEARER_TOKEN || ''
     });
-  } else {
-    // Apply env-var defaults for any field currently blank in the DB.
-    // This lets operators set env vars without losing values already saved via UI.
-    let dirty = false;
-    if (!config.authServerUrl        && ENV_AUTH_SERVER_URL)          { config.authServerUrl        = ENV_AUTH_SERVER_URL;         dirty = true; }
-    if (!config.authServerAdminToken && ENV_AUTH_SERVER_ADMIN_TOKEN)  { config.authServerAdminToken = ENV_AUTH_SERVER_ADMIN_TOKEN;  dirty = true; }
-    if (!config.authServerPublicUrl  && ENV_AUTH_SERVER_PUBLIC_URL)   { config.authServerPublicUrl  = ENV_AUTH_SERVER_PUBLIC_URL;   dirty = true; }
-    if (!config.authServerPrivateUrl && ENV_AUTH_SERVER_PRIVATE_URL)  { config.authServerPrivateUrl = ENV_AUTH_SERVER_PRIVATE_URL;  dirty = true; }
-    if (!config.tenantSecret         && ENV_TENANT_SECRET)            { config.tenantSecret         = ENV_TENANT_SECRET;            dirty = true; }
-    if (dirty) await config.save();
   }
   return config;
 }
@@ -68,7 +42,7 @@ async function getAcapyClient(customConfig = null) {
   const config = customConfig || await getActiveConfig();
   const headers = {};
   if (config.bearerToken) {
-    headers['Authorization'] = `Bearer ${config.bearerToken.replace(/^Bearer\\s+/i, '')}`;
+    headers['Authorization'] = `Bearer ${config.bearerToken.replace(/^Bearer\s+/i, '')}`;
   }
   if (config.adminApiKey) {
     headers['X-API-Key'] = config.adminApiKey;
@@ -90,7 +64,7 @@ function formatError(err) {
     msg = msg.message || msg.error || JSON.stringify(msg);
   }
   if (err.code === 'ECONNREFUSED' || (typeof msg === 'string' && msg.includes('ECONNREFUSED'))) {
-    return `${msg}. TIP: If the app is running in Docker and ACA-Py is running on your host machine, 'localhost' refers to the container. Use 'http://host.docker.internal:3001' (or host IP) instead.`;
+    return `${msg}. TIP: If the app is running in Docker and ACA-Py is running on your host machine, 'localhost' refers to the container. Use 'http://host.docker.internal:3001' (or host IP) instea[...]
   }
   return msg;
 }
@@ -108,16 +82,11 @@ app.get('/api/config', async (req, res) => {
 
 app.post('/api/config', async (req, res) => {
   try {
-    const { acapyUrl, bearerToken, adminApiKey, authServerUrl, authServerAdminToken, authServerPublicUrl, authServerPrivateUrl, tenantSecret } = req.body;
+    const { acapyUrl, bearerToken, adminApiKey } = req.body;
     let config = await getActiveConfig();
     if (acapyUrl !== undefined) config.acapyUrl = acapyUrl;
     if (bearerToken !== undefined) config.bearerToken = bearerToken;
     if (adminApiKey !== undefined) config.adminApiKey = adminApiKey;
-    if (authServerUrl !== undefined) config.authServerUrl = authServerUrl;
-    if (authServerAdminToken !== undefined) config.authServerAdminToken = authServerAdminToken;
-    if (authServerPublicUrl !== undefined) config.authServerPublicUrl = authServerPublicUrl;
-    if (authServerPrivateUrl !== undefined) config.authServerPrivateUrl = authServerPrivateUrl;
-    if (tenantSecret !== undefined) config.tenantSecret = tenantSecret;
     config.updatedAt = new Date();
     await config.save();
     res.json(config);
@@ -126,35 +95,15 @@ app.post('/api/config', async (req, res) => {
   }
 });
 
-
 // --- MULTITENANCY ENDPOINTS ---
 
 app.post('/api/multitenancy/create-tenant', async (req, res) => {
-  const logs = []; // collect step-by-step logs returned to frontend
-  const log = (msg, data) => {
-    const entry = data !== undefined ? `${msg}: ${JSON.stringify(data)}` : msg;
-    logs.push(entry);
-    console.log('[create-tenant]', entry);
-  };
-
   try {
-    const {
-      wallet_name, wallet_key, label, wallet_type,
-      acapyUrl, adminApiKey,
-      // auth-server params (all optional)
-      authServerUrl, authServerAdminToken, authServerPublicUrl, authServerPrivateUrl, tenantSecret
-    } = req.body;
-
+    const { wallet_name, wallet_key, label, wallet_type, acapyUrl, adminApiKey } = req.body;
+    
     let config = await getActiveConfig();
     const targetUrl = acapyUrl || config.acapyUrl;
     const targetAdminKey = adminApiKey !== undefined ? adminApiKey : config.adminApiKey;
-
-    // Resolve auth-server settings: request body wins, then saved config, then empty
-    const resolvedAuthServerUrl = authServerUrl || config.authServerUrl || '';
-    const resolvedAuthServerAdminToken = authServerAdminToken || config.authServerAdminToken || '';
-    const resolvedAuthServerPublicUrl = authServerPublicUrl || config.authServerPublicUrl || '';
-    const resolvedAuthServerPrivateUrl = authServerPrivateUrl || config.authServerPrivateUrl || '';
-    const resolvedTenantSecret = tenantSecret || config.tenantSecret || '';
 
     const headers = {};
     if (targetAdminKey) {
@@ -168,8 +117,7 @@ app.post('/api/multitenancy/create-tenant', async (req, res) => {
       timeout: 15000
     });
 
-    // ── STEP 1: Create Wallet / Tenant ────────────────────────────────────────
-    log('Step 1: Creating ACA-Py subwallet via POST /multitenancy/wallet');
+    // 1. Create Wallet / Tenant: POST /multitenancy/wallet
     const walletReqBody = {
       wallet_name: wallet_name || `tenant_${Date.now()}`,
       wallet_key: wallet_key || `key_${Date.now()}`,
@@ -181,112 +129,14 @@ app.post('/api/multitenancy/create-tenant', async (req, res) => {
     const createWalletRes = await acapy.post('/multitenancy/wallet', walletReqBody);
     const walletData = createWalletRes.data;
     const walletId = walletData.wallet_id;
-    log('Step 1 OK — wallet created', { wallet_id: walletId, wallet_name: walletData.wallet_name });
 
-    // ── STEP 2: Get Bearer Token ───────────────────────────────────────────────
-    log(`Step 2: Fetching token via POST /multitenancy/wallet/${walletId}/token`);
+    // 2. Get Token for Wallet: POST /multitenancy/wallet/{wallet_id}/token
     const tokenReqBody = wallet_key ? { wallet_key } : {};
     const tokenRes = await acapy.post(`/multitenancy/wallet/${walletId}/token`, tokenReqBody);
     const tokenData = tokenRes.data;
     const token = tokenData.token;
-    log('Step 2 OK — token obtained');
 
-    // ── STEPS 3-5: Auth-server setup (optional, skipped if no authServerUrl) ──
-    const authStepResults = {};
-    if (resolvedAuthServerUrl) {
-      const authHeaders = {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${resolvedAuthServerAdminToken}`
-      };
-      const authAdmin = axios.create({ baseURL: resolvedAuthServerUrl.replace(/\/+$/, ''), headers: authHeaders, timeout: 15000 });
-
-      // ── STEP 3: Create auth-server tenant ───────────────────────────────────
-      try {
-        log(`Step 3: Creating auth-server tenant for wallet_id=${walletId} via POST ${resolvedAuthServerUrl}/admin/tenants`);
-        const tenantPayload = { uid: walletId, name: walletData.wallet_name || walletReqBody.wallet_name, active: true, notes: 'oid4vc-frontend provisioned tenant' };
-        const tenantRes = await authAdmin.post('/admin/tenants', tenantPayload);
-        authStepResults.tenant = tenantRes.data;
-        log('Step 3 OK — auth-server tenant created', tenantRes.data);
-      } catch (err) {
-        const errMsg = err.response?.data || err.message;
-        log('Step 3 WARN — auth-server tenant creation failed (continuing)', errMsg);
-        authStepResults.tenantError = errMsg;
-      }
-
-      // ── STEP 4: Create signing key for auth-server tenant ───────────────────
-      try {
-        const notBefore = new Date();
-        const notAfter = new Date(new Date().setFullYear(new Date().getFullYear() + 1));
-        log(`Step 4: Creating ES256 signing key for tenant via POST ${resolvedAuthServerUrl}/admin/tenants/${walletId}/keys`);
-        log(`  Key validity: ${notBefore.toISOString()} → ${notAfter.toISOString()}`);
-        const keyPayload = { alg: 'ES256', not_before: notBefore.toISOString(), not_after: notAfter.toISOString(), status: 'active' };
-        const keyRes = await authAdmin.post(`/admin/tenants/${walletId}/keys`, keyPayload);
-        authStepResults.key = keyRes.data;
-        log('Step 4 OK — signing key created', keyRes.data);
-      } catch (err) {
-        const errMsg = err.response?.data || err.message;
-        log('Step 4 WARN — signing key creation failed (continuing)', errMsg);
-        authStepResults.keyError = errMsg;
-      }
-
-      // ── STEP 5: Create OAuth client for auth-server tenant ──────────────────
-      try {
-        log(`Step 5: Creating OAuth client for tenant via POST ${resolvedAuthServerUrl}/admin/tenants/${walletId}/clients`);
-        const clientPayload = { client_id: 'client1', client_auth_method: 'client_secret_basic', client_secret: resolvedTenantSecret };
-        const clientRes = await authAdmin.post(`/admin/tenants/${walletId}/clients`, clientPayload);
-        authStepResults.client = clientRes.data;
-        log('Step 5 OK — OAuth client created', clientRes.data);
-      } catch (err) {
-        const errMsg = err.response?.data || err.message;
-        log('Step 5 WARN — OAuth client creation failed (continuing)', errMsg);
-        authStepResults.clientError = errMsg;
-      }
-
-      // ── STEP 6: Configure ACA-Py issuer metadata (PUT /oid4vci/issuer/configuration) ──
-      if (resolvedAuthServerPublicUrl && resolvedAuthServerPrivateUrl) {
-        try {
-          log('Step 6: Configuring ACA-Py issuer metadata via PUT /oid4vci/issuer/configuration');
-          const issuerHeaders = {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          };
-          if (targetAdminKey) issuerHeaders['X-API-Key'] = targetAdminKey;
-
-          const issuerPayload = {
-            authorization_servers: [
-              {
-                public_url: `${resolvedAuthServerPublicUrl.replace(/\/+$/, '')}/tenants/${walletId}`,
-                private_url: `${resolvedAuthServerPrivateUrl.replace(/\/+$/, '')}/tenants/${walletId}`,
-                auth_type: 'client_secret_basic',
-                client_credentials: {
-                  client_id: 'client1',
-                  client_secret: resolvedTenantSecret
-                }
-              }
-            ]
-          };
-          log('Step 6: Issuer configuration payload', issuerPayload);
-
-          const issuerAcapy = axios.create({ baseURL: targetUrl.replace(/\/+$/, ''), headers: issuerHeaders, timeout: 15000 });
-          const issuerRes = await issuerAcapy.put('/oid4vci/issuer/configuration', issuerPayload);
-          authStepResults.issuerConfig = issuerRes.data;
-          log('Step 6 OK — issuer configuration set', issuerRes.data);
-        } catch (err) {
-          const errMsg = err.response?.data || err.message;
-          log('Step 6 WARN — issuer configuration failed (continuing)', errMsg);
-          authStepResults.issuerConfigError = errMsg;
-        }
-      } else {
-        log('Step 6 SKIPPED — authServerPublicUrl or authServerPrivateUrl not provided; issuer configuration not set');
-      }
-    } else {
-      log('Steps 3-6 SKIPPED — no authServerUrl provided; auth-server setup omitted');
-    }
-
-    // ── Persist everything to Config ──────────────────────────────────────────
-    log('Saving tenant + auth config to database');
+    // Save token & active tenant in config
     config.acapyUrl = targetUrl;
     if (targetAdminKey) config.adminApiKey = targetAdminKey;
     config.bearerToken = token;
@@ -297,38 +147,27 @@ app.post('/api/multitenancy/create-tenant', async (req, res) => {
       token: token,
       created_at: new Date()
     };
-    // Persist new auth-server settings if supplied
-    if (resolvedAuthServerUrl) config.authServerUrl = resolvedAuthServerUrl;
-    if (resolvedAuthServerAdminToken) config.authServerAdminToken = resolvedAuthServerAdminToken;
-    if (resolvedAuthServerPublicUrl) config.authServerPublicUrl = resolvedAuthServerPublicUrl;
-    if (resolvedAuthServerPrivateUrl) config.authServerPrivateUrl = resolvedAuthServerPrivateUrl;
-    if (resolvedTenantSecret) config.tenantSecret = resolvedTenantSecret;
     config.updatedAt = new Date();
     await config.save();
-    log('Configuration saved successfully');
 
     res.json({
       success: true,
       wallet_id: walletId,
       wallet_name: walletReqBody.wallet_name,
       token: token,
-      authStepResults,
-      logs,
-      config
+      config: config
     });
   } catch (err) {
-    console.error('[create-tenant] Fatal error:', err.response?.data || err.message);
+    console.error('Create tenant error:', err.response?.data || err.message);
     let errMsg = err.response?.data || err.message;
     if (err.code === 'ECONNREFUSED' || err.message.includes('ECONNREFUSED')) {
       errMsg = `${err.message}. TIP: If running inside Docker, 'localhost' refers to the container. Use 'http://host.docker.internal:3001' to reach ACA-Py on your host machine.`;
     }
     res.status(err.response?.status || 500).json({
-      error: errMsg,
-      logs
+      error: errMsg
     });
   }
 });
-
 
 // --- DID MANAGEMENT ENDPOINTS ---
 
@@ -661,7 +500,6 @@ app.post('/api/dcql-query/create', async (req, res) => {
 });
 
 // Create Presentation Definition: POST /oid4vp/presentation-definition
-// EXACTLY like the demo - NO MongoDB storage
 app.post('/api/presentation-definition/create', async (req, res) => {
   try {
     const { client } = await getAcapyClient();
@@ -671,18 +509,31 @@ app.post('/api/presentation-definition/create', async (req, res) => {
       return res.status(400).json({ error: 'pres_def object is required' });
     }
 
-    // Ensure proper wrapping: { pres_def: { id, purpose, input_descriptors, ... } }
     const payload = pres_def.pres_def ? pres_def : { pres_def };
     console.log('Sending /oid4vp/presentation-definition to ACA-Py:', JSON.stringify(payload, null, 2));
 
     const response = await client.post('/oid4vp/presentation-definition', payload);
-    const resData = response.data;
+    const resData = response.data; // { pres_def_id, pres_def }
 
-    console.log('Presentation definition response from ACA-Py:', JSON.stringify(resData, null, 2));
+    const pres_def_id = resData.pres_def_id || resData.pres_def?.id || pres_def.id;
+
+    // Save in MongoDB
+    const savedRecord = await PresentationDef.findOneAndUpdate(
+      { pres_def_id },
+      {
+        pres_def_id,
+        name: name || pres_def.name || pres_def.pres_def?.name || pres_def_id,
+        purpose: purpose || pres_def.purpose || pres_def.pres_def?.purpose || '',
+        pres_def: resData.pres_def || pres_def.pres_def || pres_def,
+        raw_record: resData
+      },
+      { upsert: true, new: true }
+    );
 
     res.json({
       success: true,
-      pres_def_id: resData.pres_def_id,
+      pres_def_id,
+      record: savedRecord,
       acapyResponse: resData
     });
   } catch (err) {
@@ -693,8 +544,40 @@ app.post('/api/presentation-definition/create', async (req, res) => {
   }
 });
 
+// Get Presentation Definitions: GET /api/presentation-definition/records
+app.get('/api/presentation-definition/records', async (req, res) => {
+  try {
+    const { client } = await getAcapyClient();
+    try {
+      const liveRes = await client.get('/oid4vp/presentation-definitions');
+      const liveItems = liveRes.data.results || [];
+      for (const item of liveItems) {
+        if (item && item.pres_def_id) {
+          await PresentationDef.findOneAndUpdate(
+            { pres_def_id: item.pres_def_id },
+            {
+              pres_def_id: item.pres_def_id,
+              name: item.pres_def?.name || item.pres_def_id,
+              purpose: item.pres_def?.purpose || '',
+              pres_def: item.pres_def || {},
+              raw_record: item
+            },
+            { upsert: true }
+          );
+        }
+      }
+    } catch (acapyErr) {
+      console.warn('Live ACA-Py fetch for presentation definitions failed, using DB cache:', acapyErr.message);
+    }
+
+    const records = await PresentationDef.find().sort({ createdAt: -1 });
+    res.json(records);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Create Presentation Request (OID4VP): POST /oid4vp/request
-// EXACTLY like the demo - NO MongoDB storage, use in-memory cache
 app.post('/api/presentation-request/create', async (req, res) => {
   try {
     const { client } = await getAcapyClient();
@@ -714,14 +597,29 @@ app.post('/api/presentation-request/create', async (req, res) => {
 
     // If inline pres_def object provided and no pres_def_id, create definition first
     if (!pres_def_id && pres_def && !dcql_query_id) {
+      // Ensure proper wrapping: pres_def should be { pres_def: { id, purpose, ... } }
       const presDefPayload = pres_def.pres_def ? pres_def : { pres_def };
       console.log('[DEBUG OID4VP] Creating presentation-definition in ACA-Py:', JSON.stringify(presDefPayload, null, 2));
       
       const presDefRes = await client.post('/oid4vp/presentation-definition', presDefPayload);
       console.log('[DEBUG OID4VP] Presentation definition response from ACA-Py:', JSON.stringify(presDefRes.data, null, 2));
       
+      // Extract the ID from response - handle various response structures
       pres_def_id = presDefRes.data.pres_def_id || presDefRes.data.pres_def?.id || pres_def.pres_def?.id || pres_def.id;
+      
       console.log('[DEBUG OID4VP] Extracted pres_def_id:', pres_def_id);
+
+      await PresentationDef.findOneAndUpdate(
+        { pres_def_id },
+        {
+          pres_def_id,
+          name: pres_def.name || pres_def.pres_def?.name || pres_def_id,
+          purpose: pres_def.purpose || pres_def.pres_def?.purpose || '',
+          pres_def: presDefRes.data.pres_def || pres_def.pres_def || pres_def,
+          raw_record: presDefRes.data
+        },
+        { upsert: true }
+      );
     }
 
     if (!pres_def_id && !dcql_query_id) {
@@ -737,29 +635,44 @@ app.post('/api/presentation-request/create', async (req, res) => {
     console.log('[DEBUG OID4VP] Sending /oid4vp/request to ACA-Py:', JSON.stringify(reqPayload, null, 2));
 
     const response = await client.post('/oid4vp/request', reqPayload);
-    const data = response.data;
+    const data = response.data; // { presentation, request, request_uri }
     console.log('[DEBUG OID4VP] ACA-Py /oid4vp/request response data:', JSON.stringify(data, null, 2));
 
-    // Extract IDs from response
     const presentation_id = data.presentation_id || data.presentation?.presentation_id || data.request?.presentation_id || data.request_id || data.request?.request_id || `pres_${Date.now()}`;
+    const request_id = data.request_id || data.request?.request_id || presentation_id;
     const request_uri = data.request_uri || data.request?.request_uri || '';
+    
+    // CRITICAL: Extract state and request_id from response
+    // These are REQUIRED by ACA-Py's OID4VPPresentation model
+    const state = data.presentation?.state || data.state || 'request-created';
+    const initialMatched = data.presentation?.matched_credentials || data.matched_credentials || {};
 
-    // Cache in memory (like the demo) - NOT in MongoDB
-    const cacheKey = pres_def_id || dcql_query_id;
-    presentationCache.set(cacheKey, {
-      presentation_id,
-      pres_def_id: pres_def_id || '',
-      dcql_query_id: dcql_query_id || '',
-      request_uri,
-      data
-    });
-
-    console.log('[DEBUG OID4VP] Cached presentation with key:', cacheKey);
+    // Save in MongoDB
+    const savedRecord = await PresentationRecord.findOneAndUpdate(
+      { presentation_id },
+      {
+        presentation_id,
+        request_id,
+        pres_def_id: pres_def_id || '',
+        request_uri,
+        status: state,
+        verified: state === 'presentation-valid' || Boolean(data.presentation?.verified || data.verified),
+        verified_claims: initialMatched,
+        matched_credentials: initialMatched,
+        errors: data.presentation?.errors || data.errors || [],
+        raw_record: data,
+        updatedAt: new Date()
+      },
+      { upsert: true, new: true }
+    );
 
     res.json({
       success: true,
       presentation_id,
+      request_id,
       request_uri,
+      status: state,
+      presentationRecord: savedRecord,
       raw: data
     });
   } catch (err) {
@@ -770,22 +683,105 @@ app.post('/api/presentation-request/create', async (req, res) => {
   }
 });
 
-// Get presentation status from ACA-Py (NOT from MongoDB)
+// Fetch All Presentation Records: GET /oid4vp/presentations
+// IMPORTANT: This route must be registered BEFORE the :presentation_id route
+app.get('/api/presentation/records', async (req, res) => {
+  try {
+    const { client } = await getAcapyClient();
+    try {
+      const liveRes = await client.get('/oid4vp/presentations');
+      const liveItems = liveRes.data.results || [];
+      console.log(`[DEBUG OID4VP] Fetched ${liveItems.length} presentation records from ACA-Py`);
+      for (const item of liveItems) {
+        if (item && item.presentation_id) {
+          const status = item.state || item.status || 'request-created';
+          const verified = status === 'presentation-valid' || Boolean(item.verified);
+          const matched_credentials = item.matched_credentials || {};
+          const verified_claims = item.verified_claims || matched_credentials;
+
+          await PresentationRecord.findOneAndUpdate(
+            { presentation_id: item.presentation_id },
+            {
+              presentation_id: item.presentation_id,
+              request_id: item.request_id,
+              pres_def_id: item.pres_def_id,
+              status,
+              verified,
+              verified_claims,
+              matched_credentials,
+              errors: item.errors || [],
+              raw_record: item,
+              updatedAt: new Date()
+            },
+            { upsert: true }
+          );
+        }
+      }
+    } catch (acapyErr) {
+      const errMsg = acapyErr.response?.data || acapyErr.message;
+      console.warn('[DEBUG OID4VP] Live ACA-Py fetch for presentations failed:', errMsg);
+      if (typeof errMsg === 'string' && (errMsg.includes('OID4VPPresentation') || errMsg.includes('missing 2 required keyword-only arguments'))) {
+        console.error('[CRITICAL ACA-PY STORAGE CORRUPTION] ACA-Py database contains corrupted legacy presentation records missing required state/request_id tags. This usually happens when presentations are created without proper state initialization. SOLUTION: Create a new Tenant or manually clean the database.');
+      }
+    }
+
+    const records = await PresentationRecord.find().sort({ createdAt: -1 });
+    res.json(records);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Fetch Single Presentation Status: GET /oid4vp/presentation/{presentation_id}
 app.get('/api/presentation/records/:presentation_id', async (req, res) => {
   const { presentation_id } = req.params;
   try {
     const { client } = await getAcapyClient();
-    
-    const response = await client.get(`/oid4vp/presentation/${presentation_id}`);
-    const acapyData = response.data;
-    console.log(`[DEBUG OID4VP] Fetched presentation ${presentation_id} from ACA-Py:`, JSON.stringify(acapyData, null, 2));
+    let acapyData = null;
 
-    res.json(acapyData);
+    try {
+      const response = await client.get(`/oid4vp/presentation/${presentation_id}`);
+      acapyData = response.data; // { presentation_id, state/status, matched_credentials, verified, errors }
+      console.log(`[DEBUG OID4VP] Single presentation fetch for ${presentation_id} from ACA-Py:`, JSON.stringify(acapyData, null, 2));
+    } catch (acapyErr) {
+      const errMsg = acapyErr.response?.data || acapyErr.message;
+      console.warn(`[DEBUG OID4VP] Live ACA-Py fetch for presentation ${presentation_id} failed:`, errMsg);
+      if (typeof errMsg === 'string' && (errMsg.includes('OID4VPPresentation') || errMsg.includes('missing 2 required keyword-only arguments'))) {
+        console.error(`[CRITICAL ACA-PY STORAGE CORRUPTION] ACA-Py record ${presentation_id} is corrupted in ACA-Py storage. SOLUTION: Create a new Tenant Subwallet in the Config tab.`);
+      }
+    }
+
+    let localRecord = await PresentationRecord.findOne({ presentation_id });
+
+    if (acapyData) {
+      const status = acapyData.state || acapyData.status || (localRecord ? localRecord.status : 'unknown');
+      const verified = status === 'presentation-valid' || Boolean(acapyData.verified);
+      const matched_credentials = acapyData.matched_credentials || (localRecord ? localRecord.matched_credentials : {});
+      const verified_claims = acapyData.verified_claims || matched_credentials || (localRecord ? localRecord.verified_claims : {});
+      const errors = acapyData.errors || (localRecord ? localRecord.errors : []);
+
+      localRecord = await PresentationRecord.findOneAndUpdate(
+        { presentation_id },
+        {
+          status,
+          verified,
+          verified_claims,
+          matched_credentials,
+          errors,
+          raw_record: acapyData,
+          updatedAt: new Date()
+        },
+        { upsert: true, new: true }
+      );
+    }
+
+    if (!localRecord && !acapyData) {
+      return res.status(404).json({ error: 'Presentation record not found' });
+    }
+
+    res.json(localRecord || acapyData);
   } catch (err) {
-    console.error(`[DEBUG OID4VP] Fetch presentation ${presentation_id} error:`, err.response?.data || err.message);
-    res.status(err.response?.status || 500).json({
-      error: formatError(err)
-    });
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -800,6 +796,7 @@ app.delete('/api/presentation/records/:presentation_id', async (req, res) => {
       console.warn(`Live ACA-Py delete for presentation ${presentation_id} failed:`, acapyErr.message);
     }
 
+    await PresentationRecord.deleteOne({ presentation_id });
     res.json({ success: true, presentation_id });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -818,25 +815,3 @@ if (process.env.NODE_ENV === 'production') {
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
 });
-
-//"message": "fix: adopt demo's presentation flow - use ACA-Py only, no MongoDB persistence
-
-
-/**  BREAKING CHANGE: Remove MongoDB storage for presentation records
-
-The acapy-plugins demo works because it:
-1. Only calls ACA-Py endpoints directly
-2. Caches results in memory (NodeCache)
-3. Never retrieves from database that could corrupt records
-
-Your backend was storing presentations in MongoDB, which led to:
-- \"OID4VPPresentation.__init__() missing 2 required keyword-only arguments: 'state' and 'request_id'\"
-- Corrupted records when fields weren't properly initialized
-
-SOLUTION:
-- Remove PresentationRecord MongoDB model usage
-- Use in-memory Map cache (like the demo's NodeCache)
-- Always fetch presentation status from ACA-Py endpoints
-- No database layer to corrupt data
-
-This matches the working demo flow exactly */
