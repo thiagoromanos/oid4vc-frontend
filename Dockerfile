@@ -6,24 +6,27 @@ RUN npm install
 COPY frontend/ ./
 RUN npm run build
 
-# Stage 2: Setup Backend Server & Serve Frontend
-FROM node:20-alpine
+# Stage 2: Build Go Backend
+FROM golang:alpine AS backend-builder
+WORKDIR /app/backend
+COPY backend/go.mod backend/go.sum ./
+RUN go mod download
+COPY backend/ ./
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o server .
+
+# Stage 3: Final Runtime
+FROM alpine:latest
 WORKDIR /app
 
-# Copy backend package files and install dependencies
-COPY backend/package*.json ./backend/
-RUN cd backend && npm install --production
+RUN apk add --no-cache ca-certificates
 
-# Copy backend source
-COPY backend/ ./backend/
-
-# Copy built frontend assets to backend/dist location
+COPY --from=backend-builder /app/backend/server ./backend/server
 COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
 
 EXPOSE 5000
 
-ENV NODE_ENV=production
 ENV PORT=5000
 ENV MONGODB_URI=mongodb://mongodb:27017/oid4vci
+ENV GIN_MODE=release
 
-CMD ["node", "--trace-warnings", "backend/server.js"]
+CMD ["./backend/server"]
