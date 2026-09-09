@@ -1,6 +1,6 @@
 # AGENTS.md — oid4vc-frontend
 
-AI-generated React + Express + MongoDB UI for ACA-Py OID4VC plugin (OID4VCI SD-JWT issuance + OID4VP presentation). Manages ACA-Py endpoint/auth, multitenancy subwallets, DIDs, supported credentials (`vc+sd-jwt` with en-US/pt-BR labels + selective disclosure), issuance exchanges + credential-offer QR codes, presentation definitions and requests.
+AI-generated React + Go + MongoDB UI for ACA-Py OID4VC plugin (OID4VCI SD-JWT issuance + OID4VP presentation). Manages ACA-Py endpoint/auth, multitenancy subwallets, DIDs, supported credentials (`vc+sd-jwt` with en-US/pt-BR labels + selective disclosure), issuance exchanges + credential-offer QR codes, presentation definitions and requests.
 
 - **Repo:** https://github.com/thiagoromanos/oid4vc-frontend  
 - **Disclaimer (README):** entire project made by an AI.
@@ -12,10 +12,10 @@ AI-generated React + Express + MongoDB UI for ACA-Py OID4VC plugin (OID4VCI SD-J
 | Layer    | Tech |
 |----------|------|
 | Frontend | React 18.3, Vite 5.4, axios 1.7, lucide-react 0.460, qrcode.react 4.1 |
-| Backend  | Express 4.21 (CommonJS `"type":"commonjs"`), mongoose 8.9, axios, cors, dotenv |
+| Backend  | Go (Golang 1.23+), Gin Web Framework (`github.com/gin-gonic/gin`), MongoDB Go Driver (`go.mongodb.org/mongo-driver`) |
 | DB       | MongoDB 7, database name `oid4vci` |
 | Target   | ACA-Py admin API + oid4vc plugin |
-| Runtime  | Node 20 (Alpine in Docker) |
+| Runtime  | Go binary in Alpine Docker container |
 
 No TypeScript. No tests. No auth on this app’s own `/api` routes. Frontend talks only to own backend via relative `/api` (Vite proxy in dev).
 
@@ -26,16 +26,13 @@ No TypeScript. No tests. No auth on this app’s own `/api` routes. Frontend tal
 ```
 /
 ├── backend/
-│   ├── server.js                 # ALL routes + production static serve of frontend/dist
-│   ├── models/
-│   │   ├── Config.js
-│   │   ├── SupportedCredential.js
-│   │   ├── ExchangeRecord.js
-│   │   ├── DidRecord.js
-│   │   ├── PresentationDef.js
-│   │   └── PresentationRecord.js
-│   ├── package.json
-│   └── package-lock.json
+│   ├── main.go                   # Server entry point, Gin router setup, MongoDB connection, CORS, static routes
+│   ├── config.go                 # MongoDB models (Config, SupportedCredential, ExchangeRecord, DidRecord), DB helpers
+│   ├── acapy.go                  # ACA-Py HTTP client helper (custom headers, tokens, error formatter)
+│   ├── handlers.go               # Gin endpoint route handlers
+│   ├── go.mod
+│   ├── go.sum
+│   └── README.md
 ├── frontend/
 │   ├── src/
 │   │   ├── App.jsx               # tab state machine + shared fetches
@@ -55,7 +52,7 @@ No TypeScript. No tests. No auth on this app’s own `/api` routes. Frontend tal
 │   ├── package.json
 │   ├── package-lock.json
 │   └── dist/                     # built assets (copied into image)
-├── Dockerfile                    # multi-stage: frontend-builder → backend serves dist
+├── Dockerfile                    # multi-stage: frontend-builder & backend-builder → alpine runtime
 ├── docker-compose.yml
 ├── .env                          # EXTERNAL_FRONTEND_PORT, NETWORK_NAME, NETWORK_EXTERNAL
 ├── .gitignore

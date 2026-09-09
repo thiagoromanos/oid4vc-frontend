@@ -2,7 +2,7 @@
 
 # OID4VCI SD-JWT Credential Manager
 
-A complete React + Express + MongoDB web interface designed for managing OID4VCI SD-JWT credentials, provisioning subwallets via ACA-Py Multitenancy, setting localized display labels in **en-US** and **pt-BR**, creating credential exchanges, and rendering **Credential Offer QR Codes**.
+A complete React + Go + MongoDB web interface designed for managing OID4VCI SD-JWT credentials, provisioning subwallets via ACA-Py Multitenancy, setting localized display labels in **en-US** and **pt-BR**, creating credential exchanges, and rendering **Credential Offer QR Codes**.
 
 ---
 
@@ -52,7 +52,7 @@ docker-compose up --build
 ```
 
 The application will be available at:
-👉 **`http://localhost:3000`**
+👉 **`http://localhost:5000`**
 
 ---
 
@@ -64,11 +64,10 @@ Ensure MongoDB is running locally on port 27017:
 mongod --dbpath /path/to/data
 ```
 
-### 2. Start Backend API
+### 2. Start Go Backend API
 ```bash
 cd backend
-npm install
-npm run dev
+go run .
 ```
 Backend runs on `http://localhost:5000`.
 
@@ -78,7 +77,7 @@ cd frontend
 npm install
 npm run dev
 ```
-Frontend Vite server runs on `http://localhost:3000`.
+Frontend Vite server runs on `http://localhost:3000` (proxies `/api` requests to backend at `:5000`).
 
 ---
 
