@@ -1,11 +1,17 @@
 import React, { useState } from 'react';
-import { Server, Key, UserPlus, Copy, CheckCircle, ShieldAlert, Sparkles } from 'lucide-react';
+import { Server, Key, UserPlus, Copy, CheckCircle, ShieldAlert, Sparkles, Terminal } from 'lucide-react';
 import axios from 'axios';
 
 export default function ConfigTab({ config, fetchConfig }) {
   const [acapyUrl, setAcapyUrl] = useState(config.acapyUrl || 'http://localhost:8021');
   const [bearerToken, setBearerToken] = useState(config.bearerToken || '');
   const [adminApiKey, setAdminApiKey] = useState(config.adminApiKey || '');
+  // Auth-server config
+  const [authServerUrl, setAuthServerUrl] = useState(config.authServerUrl || '');
+  const [authServerAdminToken, setAuthServerAdminToken] = useState(config.authServerAdminToken || '');
+  const [authServerPublicUrl, setAuthServerPublicUrl] = useState(config.authServerPublicUrl || '');
+  const [authServerPrivateUrl, setAuthServerPrivateUrl] = useState(config.authServerPrivateUrl || '');
+  const [tenantSecret, setTenantSecret] = useState(config.tenantSecret || '');
   const [savingConfig, setSavingConfig] = useState(false);
   const [configMessage, setConfigMessage] = useState(null);
 
@@ -26,7 +32,12 @@ export default function ConfigTab({ config, fetchConfig }) {
       await axios.post('/api/config', {
         acapyUrl,
         bearerToken,
-        adminApiKey
+        adminApiKey,
+        authServerUrl,
+        authServerAdminToken,
+        authServerPublicUrl,
+        authServerPrivateUrl,
+        tenantSecret,
       });
       setConfigMessage({ type: 'success', text: 'Configuration saved successfully!' });
       fetchConfig();
@@ -48,13 +59,19 @@ export default function ConfigTab({ config, fetchConfig }) {
         label: walletLabel,
         wallet_type: walletType,
         acapyUrl: acapyUrl,
-        adminApiKey: adminApiKey
+        adminApiKey: adminApiKey,
+        // Pass auth-server params so backend can run the full setup sequence
+        authServerUrl,
+        authServerAdminToken,
+        authServerPublicUrl,
+        authServerPrivateUrl,
+        tenantSecret,
       });
       setTenantResult(res.data);
       setBearerToken(res.data.token);
       fetchConfig();
     } catch (err) {
-      setTenantResult({ error: err.response?.data?.error || err.message });
+      setTenantResult({ error: err.response?.data?.error || err.message, logs: err.response?.data?.logs });
     } finally {
       setCreatingTenant(false);
     }
@@ -72,7 +89,7 @@ export default function ConfigTab({ config, fetchConfig }) {
       <div className="card">
         <div className="card-title">
           <Server className="w-5 h-5 text-blue-400" />
-          <span>ACA-Py Endpoint & Auth Configuration</span>
+          <span>ACA-Py Endpoint &amp; Auth Configuration</span>
         </div>
         <p className="card-subtitle">
           Configure the target ACA-Py server URL and Bearer token for OID4VCI plugin operations.
@@ -121,6 +138,70 @@ export default function ConfigTab({ config, fetchConfig }) {
             </div>
           </div>
 
+          {/* Auth-server sub-section */}
+          <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid #1e293b' }}>
+            <p style={{ fontWeight: 600, marginBottom: '12px', color: '#94a3b8', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Auth-Server Configuration{' '}
+              <span className="label-hint" style={{ textTransform: 'none' }}>Optional — used during tenant creation</span>
+            </p>
+            <div className="form-grid">
+              <div className="form-group">
+                <label>Auth-Server Internal URL</label>
+                <input
+                  type="text"
+                  value={authServerUrl}
+                  onChange={(e) => setAuthServerUrl(e.target.value)}
+                  placeholder="http://auth-server:9000"
+                />
+                <span className="label-hint">Admin API base URL (e.g. port 9000)</span>
+              </div>
+
+              <div className="form-group">
+                <label>Auth-Server Admin Token</label>
+                <input
+                  type="password"
+                  value={authServerAdminToken}
+                  onChange={(e) => setAuthServerAdminToken(e.target.value)}
+                  placeholder="ADMIN_MANAGE_AUTH_TOKEN"
+                />
+                <span className="label-hint">Bearer token for auth-server admin API</span>
+              </div>
+
+              <div className="form-group">
+                <label>Auth-Server Public URL</label>
+                <input
+                  type="text"
+                  value={authServerPublicUrl}
+                  onChange={(e) => setAuthServerPublicUrl(e.target.value)}
+                  placeholder="https://your-ngrok-url.io"
+                />
+                <span className="label-hint">Public base URL reachable by wallets (ngrok / reverse proxy)</span>
+              </div>
+
+              <div className="form-group">
+                <label>Auth-Server Private URL</label>
+                <input
+                  type="text"
+                  value={authServerPrivateUrl}
+                  onChange={(e) => setAuthServerPrivateUrl(e.target.value)}
+                  placeholder="http://auth-server:9001"
+                />
+                <span className="label-hint">Private base URL used by ACA-Py internally (e.g. port 9001)</span>
+              </div>
+
+              <div className="form-group">
+                <label>Tenant Secret (client_secret)</label>
+                <input
+                  type="password"
+                  value={tenantSecret}
+                  onChange={(e) => setTenantSecret(e.target.value)}
+                  placeholder="TENANT_SECRET"
+                />
+                <span className="label-hint">Shared secret for the OAuth client created on the auth-server</span>
+              </div>
+            </div>
+          </div>
+
           <button type="submit" className="btn btn-primary" disabled={savingConfig}>
             {savingConfig ? 'Saving...' : 'Save Configuration'}
           </button>
@@ -131,10 +212,12 @@ export default function ConfigTab({ config, fetchConfig }) {
       <div className="card">
         <div className="card-title">
           <UserPlus className="w-5 h-5 text-purple-400" />
-          <span>Create Tenant & Obtain Bearer Token</span>
+          <span>Create Tenant &amp; Obtain Bearer Token</span>
         </div>
         <p className="card-subtitle">
-          Use the ACA-Py Multitenancy endpoint (<code>POST /multitenancy/wallet</code> & <code>POST /multitenancy/wallet/{'{wallet_id}'}/token</code>) to provision a new subwallet and retrieve its Bearer Token.
+          Provisions a new ACA-Py subwallet and retrieves its Bearer Token. When Auth-Server settings
+          are configured above, also runs the full auth-server setup sequence: create tenant &rarr; create
+          signing key (ES256) &rarr; create OAuth client &rarr; configure ACA-Py issuer metadata.
         </p>
 
         <form onSubmit={handleCreateTenant}>
@@ -187,13 +270,26 @@ export default function ConfigTab({ config, fetchConfig }) {
         {tenantResult && (
           <div className="attributes-section" style={{ marginTop: '24px' }}>
             {tenantResult.error ? (
-              <div className="banner banner-error">
-                <ShieldAlert className="w-5 h-5" />
-                <div>
-                  <strong>Tenant Creation Failed:</strong>
-                  <pre style={{ marginTop: '8px' }}>{JSON.stringify(tenantResult.error, null, 2)}</pre>
+              <>
+                <div className="banner banner-error">
+                  <ShieldAlert className="w-5 h-5" />
+                  <div>
+                    <strong>Tenant Creation Failed:</strong>
+                    <pre style={{ marginTop: '8px' }}>{JSON.stringify(tenantResult.error, null, 2)}</pre>
+                  </div>
                 </div>
-              </div>
+                {tenantResult.logs && tenantResult.logs.length > 0 && (
+                  <div style={{ marginTop: '12px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', color: '#94a3b8' }}>
+                      <Terminal className="w-4 h-4" />
+                      <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>Setup Log</span>
+                    </div>
+                    <pre style={{ background: '#090d16', border: '1px solid #1e293b', borderRadius: '6px', padding: '12px', fontSize: '0.78rem', color: '#94a3b8', overflowX: 'auto', maxHeight: '260px', overflowY: 'auto' }}>
+                      {tenantResult.logs.join('\n')}
+                    </pre>
+                  </div>
+                )}
+              </>
             ) : (
               <div className="banner banner-success" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '12px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -220,6 +316,19 @@ export default function ConfigTab({ config, fetchConfig }) {
                     </button>
                   </div>
                 </div>
+
+                {/* Step-by-step log */}
+                {tenantResult.logs && tenantResult.logs.length > 0 && (
+                  <div style={{ width: '100%' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', color: '#94a3b8' }}>
+                      <Terminal className="w-4 h-4" />
+                      <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>Setup Log</span>
+                    </div>
+                    <pre style={{ background: '#090d16', border: '1px solid #1e293b', borderRadius: '6px', padding: '12px', fontSize: '0.78rem', color: '#94a3b8', overflowX: 'auto', maxHeight: '260px', overflowY: 'auto' }}>
+                      {tenantResult.logs.join('\n')}
+                    </pre>
+                  </div>
+                )}
               </div>
             )}
           </div>
