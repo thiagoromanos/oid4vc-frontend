@@ -8,7 +8,18 @@ export default function ProofPresentationTab({ storedCreds = [] }) {
 
   // Form State
   const [selectedSupportedCredId, setSelectedSupportedCredId] = useState('');
-  const [presDefId, setPresDefId] = useState(`pres_def_${Date.now()}`);
+  const generateUUID = () => {
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+      return crypto.randomUUID();
+    }
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+      const r = (Math.random() * 16) | 0;
+      const v = c === 'x' ? r : (r & 0x3) | 0x8;
+      return v.toString(16);
+    });
+  };
+
+  const [presDefId, setPresDefId] = useState(generateUUID);
   const [name, setName] = useState('Proof Presentation Request');
   const [purpose, setPurpose] = useState('Present basic profile info');
   const [vctFilter, setVctFilter] = useState('');

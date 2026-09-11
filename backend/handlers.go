@@ -1081,7 +1081,7 @@ func handleCreatePresentationReq(c *gin.Context) {
 	}
 
 	reqPayload := map[string]interface{}{
-		// "vp_formats": vpFormats,
+		"vp_formats": map[string]interface{}{},
 	}
 	if presDefID != "" {
 		reqPayload["pres_def_id"] = presDefID
