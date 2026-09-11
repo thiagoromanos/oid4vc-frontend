@@ -7,7 +7,8 @@ export default function CreateCredTab({ onCredCreated }) {
   const [vct, setVct] = useState('https://example.com/identity-card');
   const [format, setFormat] = useState('vc+sd-jwt');
   const [signingAlg, setSigningAlg] = useState('ES256K');
-  const [bindingMethod, setBindingMethod] = useState('did');
+  const [bindingMethod, setBindingMethod] = useState('jwk');
+  const [proofSigningAlgs, setProofSigningAlgs] = useState('ES256, ES256K');
 
   // Fully customizable credential_metadata.display entries
   const [displays, setDisplays] = useState([
@@ -120,6 +121,11 @@ export default function CreateCredTab({ onCredCreated }) {
         return item;
       });
 
+    const parsedProofAlgs = proofSigningAlgs
+      .split(',')
+      .map((a) => a.trim())
+      .filter(Boolean);
+
     return {
       id: credId,
       vct: vct,
@@ -128,7 +134,7 @@ export default function CreateCredTab({ onCredCreated }) {
       credential_signing_alg_values_supported: [signingAlg],
       proof_types_supported: {
         jwt: {
-          proof_signing_alg_values_supported: ['ES256', 'ES256K']
+          proof_signing_alg_values_supported: parsedProofAlgs.length > 0 ? parsedProofAlgs : ['ES256', 'ES256K']
         }
       },
       sd_list: sd_list,
@@ -218,12 +224,50 @@ export default function CreateCredTab({ onCredCreated }) {
             </div>
 
             <div className="form-group">
-              <label>Signing Algorithm Supported</label>
-              <select value={signingAlg} onChange={(e) => setSigningAlg(e.target.value)}>
-                <option value="ES256K">ES256K</option>
-                <option value="ES256">ES256</option>
-                <option value="Ed25519">Ed25519</option>
-              </select>
+              <label>Signing Algorithm Supported (credential_signing_alg_values_supported)</label>
+              <input
+                type="text"
+                value={signingAlg}
+                onChange={(e) => setSigningAlg(e.target.value)}
+                placeholder="ES256K, ES256, EdDSA, ES384..."
+                list="cred-signing-alg-options"
+                required
+              />
+              <datalist id="cred-signing-alg-options">
+                <option value="ES256K" />
+                <option value="ES256" />
+                <option value="EdDSA" />
+                <option value="ES384" />
+                <option value="ES512" />
+              </datalist>
+            </div>
+
+            <div className="form-group">
+              <label>Cryptographic Binding Method (cryptographic_binding_methods_supported)</label>
+              <input
+                type="text"
+                value={bindingMethod}
+                onChange={(e) => setBindingMethod(e.target.value)}
+                placeholder="did, jwk..."
+                list="binding-method-options"
+                required
+              />
+              <datalist id="binding-method-options">
+                <option value="jwk" />
+                <option value="did" />
+                <option value="did:key" />
+              </datalist>
+            </div>
+
+            <div className="form-group">
+              <label>Proof Signing Algorithms (proof_types_supported.jwt)</label>
+              <input
+                type="text"
+                value={proofSigningAlgs}
+                onChange={(e) => setProofSigningAlgs(e.target.value)}
+                placeholder="ES256, ES256K, Ed25519 (comma separated)"
+                required
+              />
             </div>
           </div>
 

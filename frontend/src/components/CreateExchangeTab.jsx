@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { RefreshCw, QrCode, Sparkles, CheckCircle, ShieldAlert, Copy, ExternalLink, Info } from 'lucide-react';
+import { RefreshCw, QrCode, Sparkles, CheckCircle, ShieldAlert, Copy, ExternalLink, Info, Code } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import axios from 'axios';
 
@@ -16,6 +16,28 @@ export default function CreateExchangeTab({ selectedCredId, storedCreds, selecte
   const [creatingExchange, setCreatingExchange] = useState(false);
   const [exchangeResult, setExchangeResult] = useState(null);
   const [copiedOffer, setCopiedOffer] = useState(false);
+  const [showJsonPreview, setShowJsonPreview] = useState(false);
+
+  const buildPayload = () => {
+    const credential_subject = {};
+    Object.keys(attributeValues).forEach((key) => {
+      if (attributeValues[key] && attributeValues[key].trim() !== '') {
+        credential_subject[key] = attributeValues[key].trim();
+      }
+    });
+
+    const payload = {
+      supported_cred_id: currentCredId,
+      credential_subject: credential_subject
+    };
+    if (userPin.trim()) payload.pin = userPin.trim();
+    if (did.trim()) {
+       payload.did = did.trim();
+       payload.verification_method = `${did.trim()}#0`
+    }
+
+    return payload;
+  };
 
   useEffect(() => {
     if (selectedDid) {
@@ -265,14 +287,30 @@ export default function CreateExchangeTab({ selectedCredId, storedCreds, selecte
               </div>
             </div>
 
-            <div style={{ marginTop: '24px' }}>
+            <div style={{ marginTop: '24px', display: 'flex', gap: '12px' }}>
               <button type="submit" className="btn btn-primary" disabled={creatingExchange}>
                 <Sparkles className="w-4 h-4" />
                 {creatingExchange ? 'Creating Exchange...' : 'Create Exchange & Generate QR Code'}
               </button>
+
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setShowJsonPreview(!showJsonPreview)}
+              >
+                <Code className="w-4 h-4" />
+                {showJsonPreview ? 'Hide Payload JSON' : 'Preview Payload JSON'}
+              </button>
             </div>
           </form>
         ) : null}
+
+        {showJsonPreview && (
+          <div style={{ marginTop: '20px' }}>
+            <h5 style={{ fontSize: '0.85rem', color: '#94a3b8', marginBottom: '8px' }}>Payload Preview to ACA-Py:</h5>
+            <pre>{JSON.stringify(buildPayload(), null, 2)}</pre>
+          </div>
+        )}
       </div>
 
       {/* Exchange Result & Credential Offer QR Code Display */}

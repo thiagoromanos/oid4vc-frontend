@@ -3,7 +3,7 @@ import { Server, Key, UserPlus, Copy, CheckCircle, ShieldAlert, Sparkles, Termin
 import axios from 'axios';
 
 export default function ConfigTab({ config, fetchConfig }) {
-  const [acapyUrl, setAcapyUrl] = useState(config.acapyUrl || 'http://localhost:8021');
+  const [acapyUrl, setAcapyUrl] = useState(config.acapyUrl || 'http://issuer:3001');
   const [bearerToken, setBearerToken] = useState(config.bearerToken || '');
   const [adminApiKey, setAdminApiKey] = useState(config.adminApiKey || '');
   // Auth-server config
@@ -110,7 +110,7 @@ export default function ConfigTab({ config, fetchConfig }) {
                 type="url"
                 value={acapyUrl}
                 onChange={(e) => setAcapyUrl(e.target.value)}
-                placeholder="http://localhost:8021"
+                placeholder="http://issuer:3001"
                 required
               />
               <span className="label-hint">Base URL of your ACA-Py instance</span>

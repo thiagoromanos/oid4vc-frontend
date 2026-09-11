@@ -13,7 +13,7 @@ import ProofPresentationTab from './components/ProofPresentationTab';
 export default function App() {
   const [activeTab, setActiveTab] = useState('config');
   const [config, setConfig] = useState({
-    acapyUrl: 'http://localhost:8021',
+    acapyUrl: 'http://issuer:3001',
     bearerToken: '',
     adminApiKey: ''
   });

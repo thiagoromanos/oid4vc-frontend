@@ -51,7 +51,7 @@ To launch the MongoDB database and the application together:
 docker-compose up --build
 ```
 
-The application will be available at:
+The Compose stack builds separate frontend and backend images. The frontend container serves the React application through Nginx and proxies `/api` requests to the backend container. The application will be available at:
 👉 **`http://localhost:5000`**
 
 ---
@@ -91,4 +91,3 @@ The application integrates with the ACA-Py OID4VCI plugin specified in `acapy-cp
 - `GET /oid4vci/credential-supported/records/{supported_cred_id}`
 - `POST /oid4vci/exchange/create`
 - `GET /oid4vci/credential-offer`
-

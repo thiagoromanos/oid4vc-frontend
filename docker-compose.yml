@@ -12,15 +12,13 @@ services:
     networks:
       - frontend-oid4vci-net
 
-  app:
-    image: ghcr.io/thiagoromanos/oid4vc-frontend:beta1
+  backend:
+    image: ghcr.io/thiagoromanos/oid4vc-backend:beta1
     build:
       context: .
-      dockerfile: Dockerfile
-    container_name: acapy-oid4vc-frontent
+      dockerfile: backend/Dockerfile
+    container_name: oid4vci-backend
     restart: always
-    ports:
-      - "${EXTERNAL_FRONTEND_PORT:-5000}:5000"
     environment:
       - NODE_ENV=production
       - PORT=5000
@@ -32,11 +30,27 @@ services:
       #- AUTH_SERVER_PUBLIC_URL=https://your-ngrok-url.io
       #- AUTH_SERVER_PRIVATE_URL=http://auth-server:9001
       #- TENANT_SECRET=changeme
+    env_file:
+      - .env
 
     depends_on:
       - mongodb
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    networks:
+      - frontend-oid4vci-net
+
+  frontend:
+    image: ghcr.io/thiagoromanos/oid4vc-frontend-ui:beta1
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    container_name: oid4vci-frontend
+    restart: always
+    depends_on:
+      - backend
+    ports:
+      - "${EXTERNAL_FRONTEND_PORT:-5000}:80"
     networks:
       - frontend-oid4vci-net
 

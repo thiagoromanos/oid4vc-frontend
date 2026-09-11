@@ -169,10 +169,10 @@ func handleCreateTenant(c *gin.Context) {
 	// ── STEP 1: Create Wallet / Tenant ──
 	logEntry("Step 1: Creating ACA-Py subwallet via POST /multitenancy/wallet", nil)
 	walletReqBody := map[string]interface{}{
-		"wallet_name":          walletName,
-		"wallet_key":           walletKey,
-		"label":                label,
-		"wallet_type":          walletType,
+		"wallet_name":         walletName,
+		"wallet_key":          walletKey,
+		"label":               label,
+		"wallet_type":         walletType,
 		"key_management_mode": "managed",
 	}
 
@@ -394,6 +394,18 @@ func handleCreateTenant(c *gin.Context) {
 // --- DID MANAGEMENT ENDPOINTS ---
 
 func handleCreateDid(c *gin.Context) {
+
+	var logs []string
+	logEntry := func(msg string, data interface{}) {
+		entry := msg
+		if data != nil {
+			bytesData, _ := json.Marshal(data)
+			entry = fmt.Sprintf("%s: %s", msg, string(bytesData))
+		}
+		logs = append(logs, entry)
+		log.Printf("[create-tenant] %s", entry)
+	}
+
 	client, _, err := getAcapyClient(c.Request.Context(), nil)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -415,17 +427,35 @@ func handleCreateDid(c *gin.Context) {
 		keyType = val
 	}
 
-	payload := map[string]interface{}{
-		"method": method,
-		"options": map[string]interface{}{
+	var payload map[string]interface{}
+	var requestUri string
+
+	if method == "jwk" {
+		if keyType != "ed25519" && keyType != "p256" && err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		payload = map[string]interface{}{
 			"key_type": keyType,
-		},
-	}
-	if seed, ok := reqBody["seed"].(string); ok && strings.TrimSpace(seed) != "" {
-		payload["seed"] = strings.TrimSpace(seed)
+		}
+
+		logEntry("Keytype com jwk: ", keyType)
+
+		requestUri = "/did/jwk/create"
+	} else {
+		payload = map[string]interface{}{
+			"method": method,
+			"options": map[string]interface{}{
+				"key_type": keyType,
+			},
+		}
+		if seed, ok := reqBody["seed"].(string); ok && strings.TrimSpace(seed) != "" {
+			payload["seed"] = strings.TrimSpace(seed)
+		}
+		requestUri = "/wallet/did/create"
 	}
 
-	resBytes, statusCode, err := client.DoRequest(c.Request.Context(), "POST", "/wallet/did/create", payload, nil)
+	resBytes, statusCode, err := client.DoRequest(c.Request.Context(), "POST", requestUri, payload, nil)
 	if err != nil || statusCode >= 400 {
 		c.JSON(statusCode, gin.H{"error": formatErrorMsg(err, resBytes)})
 		return
@@ -435,24 +465,34 @@ func handleCreateDid(c *gin.Context) {
 	_ = json.Unmarshal(resBytes, &respData)
 
 	didInfo := respData
-	if resultObj, ok := respData["result"].(map[string]interface{}); ok {
-		didInfo = resultObj
-	}
 
-	didStr, _ := didInfo["did"].(string)
-	if didStr == "" {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to extract DID from ACA-Py response", "raw": respData})
-		return
-	}
+	var didStr string
+	var verkeyStr string
+	var postureStr string
+	var metadataVal string
 
-	verkeyStr, _ := didInfo["verkey"].(string)
-	postureStr, _ := didInfo["posture"].(string)
-	if postureStr == "" {
-		postureStr = "wallet_only"
-	}
-	metadataVal := didInfo["metadata"]
-	if metadataVal == nil {
-		metadataVal = map[string]interface{}{}
+	if method == "jwk" {
+		didStr, _ = didInfo["did"].(string)
+	} else {
+		if resultObj, ok := respData["result"].(map[string]interface{}); ok {
+			didInfo = resultObj
+		}
+
+		didStr, _ := didInfo["did"].(string)
+		if didStr == "" {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to extract DID from ACA-Py response", "raw": respData})
+			return
+		}
+
+		verkeyStr, _ = didInfo["verkey"].(string)
+		postureStr, _ := didInfo["posture"].(string)
+		if postureStr == "" {
+			postureStr = "wallet_only"
+		}
+		metadataVal := didInfo["metadata"]
+		if metadataVal == nil {
+			metadataVal = map[string]interface{}{}
+		}
 	}
 
 	didRec := DidRecord{
@@ -656,17 +696,17 @@ func handleCreateSdJwtSupported(c *gin.Context) {
 	}
 
 	rec := SupportedCredential{
-		SupportedCredID:                     supportedCredID,
-		Identifier:                          identifier,
-		VCT:                                 vct,
-		Format:                              format,
-		SDList:                              sdList,
+		SupportedCredID:                      supportedCredID,
+		Identifier:                           identifier,
+		VCT:                                  vct,
+		Format:                               format,
+		SDList:                               sdList,
 		CryptographicBindingMethodsSupported: cryptoMethods,
-		CredentialSigningAlgValuesSupported: signingAlgs,
-		CredentialMetadata:                  metadata,
-		RawRecord:                           acapyRecord,
-		UpdatedAt:                           time.Now(),
-		CreatedAt:                           time.Now(),
+		CredentialSigningAlgValuesSupported:  signingAlgs,
+		CredentialMetadata:                   metadata,
+		RawRecord:                            acapyRecord,
+		UpdatedAt:                            time.Now(),
+		CreatedAt:                            time.Now(),
 	}
 
 	coll := db.Collection("supported_credentials")
@@ -822,6 +862,10 @@ func handleCreateExchange(c *gin.Context) {
 	}
 	if vm, ok := reqBody["verification_method"].(string); ok && vm != "" {
 		payload["verification_method"] = vm
+	} else {
+		if did, ok := reqBody["did"].(string); ok && did != "" {
+			payload["diverification_methodd"] = did + "#0"
+		}
 	}
 
 	resBytes, statusCode, err := client.DoRequest(c.Request.Context(), "POST", "/oid4vci/exchange/create", payload, nil)
@@ -999,17 +1043,17 @@ func handleCreatePresentationReq(c *gin.Context) {
 
 	presDefID, _ := body["pres_def_id"].(string)
 	dcqlQueryID, _ := body["dcql_query_id"].(string)
-	vpFormats := body["vp_formats"]
+	// vpFormats := body["vp_formats"]
 	presDefObj := body["pres_def"]
 
-	if vpFormats == nil {
-		vpFormats = map[string]interface{}{
-			"vc+sd-jwt": map[string]interface{}{
-				"sd-jwt_alg_values": []string{"ES256", "ES384"},
-				"kb-jwt_alg_values": []string{"ES256", "ES384"},
-			},
-		}
-	}
+	// if vpFormats == nil {
+	// 	vpFormats = map[string]interface{}{
+	// 		"vc+sd-jwt": map[string]interface{}{
+	// 			"sd-jwt_alg_values": []string{"ES256", "ES384"},
+	// 			"kb-jwt_alg_values": []string{"ES256", "ES384"},
+	// 		},
+	// 	}
+	// }
 
 	if presDefID == "" && presDefObj != nil && dcqlQueryID == "" {
 		payload := map[string]interface{}{"pres_def": presDefObj}
@@ -1037,7 +1081,7 @@ func handleCreatePresentationReq(c *gin.Context) {
 	}
 
 	reqPayload := map[string]interface{}{
-		"vp_formats": vpFormats,
+		// "vp_formats": vpFormats,
 	}
 	if presDefID != "" {
 		reqPayload["pres_def_id"] = presDefID

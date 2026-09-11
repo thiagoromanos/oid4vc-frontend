@@ -42,18 +42,18 @@ type Config struct {
 
 // SupportedCredential represents OID4VCI supported credential definition.
 type SupportedCredential struct {
-	ID                                  primitive.ObjectID     `bson:"_id,omitempty" json:"_id,omitempty"`
-	SupportedCredID                     string                 `bson:"supported_cred_id" json:"supported_cred_id"`
-	Identifier                          string                 `bson:"identifier" json:"identifier"`
-	VCT                                 string                 `bson:"vct" json:"vct"`
-	Format                              string                 `bson:"format" json:"format"`
-	SDList                              []string               `bson:"sd_list" json:"sd_list"`
+	ID                                   primitive.ObjectID     `bson:"_id,omitempty" json:"_id,omitempty"`
+	SupportedCredID                      string                 `bson:"supported_cred_id" json:"supported_cred_id"`
+	Identifier                           string                 `bson:"identifier" json:"identifier"`
+	VCT                                  string                 `bson:"vct" json:"vct"`
+	Format                               string                 `bson:"format" json:"format"`
+	SDList                               []string               `bson:"sd_list" json:"sd_list"`
 	CryptographicBindingMethodsSupported []string               `bson:"cryptographic_binding_methods_supported" json:"cryptographic_binding_methods_supported"`
-	CredentialSigningAlgValuesSupported []string               `bson:"credential_signing_alg_values_supported" json:"credential_signing_alg_values_supported"`
-	CredentialMetadata                  map[string]interface{} `bson:"credential_metadata" json:"credential_metadata"`
-	RawRecord                           interface{}            `bson:"raw_record,omitempty" json:"raw_record,omitempty"`
-	CreatedAt                           time.Time              `bson:"createdAt" json:"createdAt"`
-	UpdatedAt                           time.Time              `bson:"updatedAt" json:"updatedAt"`
+	CredentialSigningAlgValuesSupported  []string               `bson:"credential_signing_alg_values_supported" json:"credential_signing_alg_values_supported"`
+	CredentialMetadata                   map[string]interface{} `bson:"credential_metadata" json:"credential_metadata"`
+	RawRecord                            interface{}            `bson:"raw_record,omitempty" json:"raw_record,omitempty"`
+	CreatedAt                            time.Time              `bson:"createdAt" json:"createdAt"`
+	UpdatedAt                            time.Time              `bson:"updatedAt" json:"updatedAt"`
 }
 
 // ExchangeRecord represents credential issuance exchange history.
@@ -125,7 +125,7 @@ func getActiveConfig(ctx context.Context) (*Config, error) {
 	coll := db.Collection("configs")
 	var config Config
 
-	envAcapyURL := getEnv("ACAPY_URL", "http://localhost:8021")
+	envAcapyURL := getEnv("ACAPY_URL", "http://issuer:3001")
 	envBearerToken := getEnv("BEARER_TOKEN", "")
 	envAuthServerURL := getEnv("AUTH_SERVER_URL", "")
 	envAuthServerAdminToken := getEnv("AUTH_SERVER_ADMIN_TOKEN", "")

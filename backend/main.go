@@ -16,6 +16,8 @@ func main() {
 	// Attempt to load .env file if available
 	_ = godotenv.Load()
 
+	log.Printf("starting backend")
+
 	mongoURI := getEnv("MONGODB_URI", "mongodb://localhost:27017/oid4vci")
 	port := getEnv("PORT", "5000")
 
