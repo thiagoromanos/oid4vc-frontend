@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { ShieldCheck, QrCode, RefreshCw, CheckCircle, AlertCircle, Copy, Info, Trash2, Clock, Check, XCircle, Plus, ChevronDown, ChevronUp, FileText, Bug } from 'lucide-react';
+import { ShieldCheck, QrCode, RefreshCw, CheckCircle, AlertCircle, Copy, Info, Trash2, Clock, Check, XCircle, Plus, ChevronDown, ChevronUp, FileText, Bug, Code } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import axios from 'axios';
 
@@ -8,11 +8,24 @@ export default function ProofPresentationTab({ storedCreds = [] }) {
 
   // Form State
   const [selectedSupportedCredId, setSelectedSupportedCredId] = useState('');
-  const [presDefId, setPresDefId] = useState(`pres_def_${Date.now()}`);
+  const generateUUID = () => {
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+      return crypto.randomUUID();
+    }
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+      const r = (Math.random() * 16) | 0;
+      const v = c === 'x' ? r : (r & 0x3) | 0x8;
+      return v.toString(16);
+    });
+  };
+
+  const [presDefId, setPresDefId] = useState(generateUUID);
   const [name, setName] = useState('Proof Presentation Request');
   const [purpose, setPurpose] = useState('Present basic profile info');
   const [vctFilter, setVctFilter] = useState('');
   const [format, setFormat] = useState('vc+sd-jwt');
+  const [proofAlgValues, setProofAlgValues] = useState('ES256, ES384, ES256K, EdDSA');
+  const [kbAlgValues, setKbAlgValues] = useState('ES256, ES384, ES256K, EdDSA');
 
   // Fields / Attributes to request in presentation definition
   const [requestedFields, setRequestedFields] = useState([]);
@@ -24,6 +37,7 @@ export default function ProofPresentationTab({ storedCreds = [] }) {
   const [copiedUri, setCopiedUri] = useState(false);
   const [pollingStatus, setPollingStatus] = useState(false);
   const [showRawJson, setShowRawJson] = useState(false);
+  const [showPayloadPreview, setShowPayloadPreview] = useState(false);
 
   // History State
   const [historyRecords, setHistoryRecords] = useState([]);
@@ -78,6 +92,119 @@ export default function ProofPresentationTab({ storedCreds = [] }) {
     setRequestedFields(requestedFields.filter(f => f !== fieldToRemove));
   };
 
+  // Helper to construct request payload preview
+  const buildPayload = () => {
+    let pres_def = null;
+    let vp_formats = null;
+
+    const parsedProofAlgs = proofAlgValues.split(',').map(a => a.trim()).filter(Boolean);
+    const parsedKbAlgs = kbAlgValues.split(',').map(a => a.trim()).filter(Boolean);
+
+    if (format === 'mso_mdoc') {
+      const claims = requestedFields.length > 0
+        ? requestedFields.map(f => ({ namespace: "org.iso.18013.5.1", claim_name: cleanFieldName(f) }))
+        : [
+            { namespace: "org.iso.18013.5.1", claim_name: "family_name" },
+            { namespace: "org.iso.18013.5.1", claim_name: "given_name" },
+            { namespace: "org.iso.18013.5.1", claim_name: "document_number" },
+            { namespace: "org.iso.18013.5.1", claim_name: "issuing_country" },
+            { namespace: "org.iso.18013.5.1", claim_name: "expiry_date" }
+          ];
+
+      vp_formats = { "mso_mdoc": { "alg": parsedProofAlgs.length > 0 ? parsedProofAlgs : ["ES256"] } };
+      return {
+        dcql_query: { credentials: [{ id: "mDL", format: "mso_mdoc", meta: { doctype_value: "org.iso.18013.5.1.mDL" }, claims }] },
+        vp_formats
+      };
+    } else if (format === 'jwt_vp' || format === 'jwt_vc' || format === 'jwt_vc_json') {
+      const fields = requestedFields.length > 0
+        ? requestedFields.map(f => {
+            const clean = cleanFieldName(f);
+            return {
+              name: clean,
+              path: [`$.vc.credentialSubject.${clean}`, `$.credentialSubject.${clean}`],
+              filter: { type: "string", pattern: "^.{1,64}$" }
+            };
+          })
+        : [
+            { name: "name", path: ["$.vc.credentialSubject.first_name", "$.credentialSubject.first_name"], filter: { type: "string", pattern: "^.{1,64}$" } },
+            { name: "lastname", path: ["$.vc.credentialSubject.last_name", "$.credentialSubject.last_name"], filter: { type: "string", pattern: "^.{1,64}$" } }
+          ];
+
+      pres_def = {
+        id: presDefId.trim() || 'pres_def_id',
+        purpose: purpose.trim() || 'Present basic profile info',
+        format: {
+          "jwt_vc_json": { "alg": parsedProofAlgs.length > 0 ? parsedProofAlgs : ["ES256"] },
+          "jwt_vp_json": { "alg": parsedProofAlgs.length > 0 ? parsedProofAlgs : ["ES256"] },
+          "jwt_vc": { "alg": parsedProofAlgs.length > 0 ? parsedProofAlgs : ["ES256"] },
+          "jwt_vp": { "alg": parsedProofAlgs.length > 0 ? parsedProofAlgs : ["ES256"] }
+        },
+        input_descriptors: [
+          {
+            id: 'input_descriptor_1',
+            name: name.trim() || 'Profile',
+            purpose: purpose.trim() || 'Present basic profile info',
+            constraints: { fields: fields }
+          }
+        ]
+      };
+
+      vp_formats = {
+        "jwt_vc": { "alg": parsedProofAlgs.length > 0 ? parsedProofAlgs : ["ES256", "EdDSA"] },
+        "jwt_vp": { "alg": parsedProofAlgs.length > 0 ? parsedProofAlgs : ["ES256", "EdDSA"] },
+        "jwt_vc_json": { "alg": parsedProofAlgs.length > 0 ? parsedProofAlgs : ["ES256", "EdDSA"] },
+        "jwt_vp_json": { "alg": parsedProofAlgs.length > 0 ? parsedProofAlgs : ["ES256", "EdDSA"] }
+      };
+
+      return { pres_def, vp_formats };
+    } else {
+      const fields = [
+        {
+          path: ["$.vct"],
+          filter: {
+            type: "string",
+            ...(vctFilter.trim() ? { pattern: `^${vctFilter.trim()}$` } : {})
+          }
+        }
+      ];
+
+      requestedFields.forEach(field => {
+        const clean = cleanFieldName(field);
+        if (clean && clean !== 'vct') {
+          fields.push({ path: [`$.${clean}`] });
+        }
+      });
+
+      const inputDescriptor = {
+        id: "ID Card",
+        name: name.trim() || 'Profile',
+        purpose: purpose.trim() || 'Present basic profile info',
+        format: { "vc+sd-jwt": {} },
+        constraints: {
+          limit_disclosure: "required",
+          fields: fields
+        }
+      };
+
+      pres_def = {
+        id: presDefId.trim() || 'pres_def_id',
+        name: name.trim() || 'Presentation Definition',
+        purpose: purpose.trim() || 'Present basic profile info',
+        input_descriptors: [inputDescriptor]
+      };
+
+      vp_formats = {
+        "vc+sd-jwt": {
+          "sd-jwt_alg_values": parsedProofAlgs.length > 0 ? parsedProofAlgs : ["ES256", "ES384"],
+          "kb-jwt_alg_values": parsedKbAlgs.length > 0 ? parsedKbAlgs : ["ES256", "ES384"]
+        }
+      };
+
+      return { pres_def };
+    }
+  };
+
   // Handle Create Presentation Request matching acapy-plugins reference demo EXACTLY
   const handleCreateRequest = async (e) => {
     e.preventDefault();
@@ -91,134 +218,14 @@ export default function ProofPresentationTab({ storedCreds = [] }) {
       let dcql_query_id = null;
 
       if (format === 'mso_mdoc') {
-        // mDoc / mDL presentation flow (DCQL query) matching create_mdoc_presentation in demo
-        const claims = requestedFields.length > 0
-          ? requestedFields.map(f => ({ namespace: "org.iso.18013.5.1", claim_name: cleanFieldName(f) }))
-          : [
-              { namespace: "org.iso.18013.5.1", claim_name: "family_name" },
-              { namespace: "org.iso.18013.5.1", claim_name: "given_name" },
-              { namespace: "org.iso.18013.5.1", claim_name: "document_number" },
-              { namespace: "org.iso.18013.5.1", claim_name: "issuing_country" },
-              { namespace: "org.iso.18013.5.1", claim_name: "expiry_date" }
-            ];
-
-        const dcqlRes = await axios.post('/api/dcql-query/create', {
-          credentials: [
-            {
-              id: "mDL",
-              format: "mso_mdoc",
-              meta: {
-                doctype_value: "org.iso.18013.5.1.mDL"
-              },
-              claims
-            }
-          ]
-        });
+        const payloadData = buildPayload();
+        const dcqlRes = await axios.post('/api/dcql-query/create', payloadData.dcql_query);
         dcql_query_id = dcqlRes.data.dcql_query_id;
-        vp_formats = {
-          "mso_mdoc": { "alg": ["ES256"] }
-        };
-      } else if (format === 'jwt_vp' || format === 'jwt_vc' || format === 'jwt_vc_json') {
-        // W3C JWT VC/VP presentation definition matching create_jwt_vc_presentation in demo
-        const fields = requestedFields.length > 0
-          ? requestedFields.map(f => {
-              const clean = cleanFieldName(f);
-              return {
-                name: clean,
-                path: [
-                  `$.vc.credentialSubject.${clean}`,
-                  `$.credentialSubject.${clean}`
-                ],
-                filter: { type: "string", pattern: "^.{1,64}$" }
-              };
-            })
-          : [
-              {
-                name: "name",
-                path: ["$.vc.credentialSubject.first_name", "$.credentialSubject.first_name"],
-                filter: { type: "string", pattern: "^.{1,64}$" }
-              },
-              {
-                name: "lastname",
-                path: ["$.vc.credentialSubject.last_name", "$.credentialSubject.last_name"],
-                filter: { type: "string", pattern: "^.{1,64}$" }
-              }
-            ];
-
-        pres_def = {
-          id: presDefId.trim() || `pres_def_${Date.now()}`,
-          purpose: purpose.trim() || 'Present basic profile info',
-          format: {
-            "jwt_vc_json": { "alg": ["ES256"] },
-            "jwt_vp_json": { "alg": ["ES256"] },
-            "jwt_vc": { "alg": ["ES256"] },
-            "jwt_vp": { "alg": ["ES256"] }
-          },
-          input_descriptors: [
-            {
-              id: `id_${Date.now()}`,
-              name: name.trim() || 'Profile',
-              purpose: purpose.trim() || 'Present basic profile info',
-              constraints: {
-                fields: fields
-              }
-            }
-          ]
-        };
-
-        vp_formats = {
-          "jwt_vc": { "alg": ["ES256", "EdDSA"] },
-          "jwt_vp": { "alg": ["ES256", "EdDSA"] },
-          "jwt_vc_json": { "alg": ["ES256", "EdDSA"] },
-          "jwt_vp_json": { "alg": ["ES256", "EdDSA"] }
-        };
+        vp_formats = payloadData.vp_formats;
       } else {
-        // SD-JWT VC (vc+sd-jwt) presentation definition matching create_sd_jwt_presentation in demo
-        const fields = [
-          {
-            path: ["$.vct"],
-            filter: {
-              type: "string",
-              ...(vctFilter.trim() ? { pattern: `^${vctFilter.trim()}$` } : {})
-            }
-          }
-        ];
-
-        requestedFields.forEach(field => {
-          const clean = cleanFieldName(field);
-          if (clean && clean !== 'vct') {
-            fields.push({
-              path: [`$.${clean}`]
-            });
-          }
-        });
-
-        const inputDescriptor = {
-          id: "ID Card",
-          name: name.trim() || 'Profile',
-          purpose: purpose.trim() || 'Present basic profile info',
-          format: {
-            "vc+sd-jwt": {}
-          },
-          constraints: {
-            limit_disclosure: "required",
-            fields: fields
-          }
-        };
-
-        pres_def = {
-          id: presDefId.trim() || `pres_def_${Date.now()}`,
-          name: name.trim() || 'Presentation Definition',
-          purpose: purpose.trim() || 'Present basic profile info',
-          input_descriptors: [inputDescriptor]
-        };
-
-        vp_formats = {
-          "vc+sd-jwt": {
-            "sd-jwt_alg_values": ["ES256", "ES384"],
-            "kb-jwt_alg_values": ["ES256", "ES384"]
-          }
-        };
+        const payloadData = buildPayload();
+        pres_def = payloadData.pres_def;
+        vp_formats = payloadData.vp_formats;
       }
 
       console.log('[DEBUG FRONTEND] Creating presentation request:', { pres_def, dcql_query_id, vp_formats });
@@ -488,6 +495,28 @@ export default function ProofPresentationTab({ storedCreds = [] }) {
                 />
               </div>
 
+              <div className="form-group">
+                <label>Supported Proof Algorithms (sd-jwt_alg_values / alg)</label>
+                <input
+                  type="text"
+                  value={proofAlgValues}
+                  onChange={(e) => setProofAlgValues(e.target.value)}
+                  placeholder="ES256, ES384, ES256K, EdDSA"
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Key Binding Algorithms (kb-jwt_alg_values)</label>
+                <input
+                  type="text"
+                  value={kbAlgValues}
+                  onChange={(e) => setKbAlgValues(e.target.value)}
+                  placeholder="ES256, ES384, ES256K, EdDSA"
+                  required
+                />
+              </div>
+
               {/* Requested Claims / Attributes Builder */}
               <div className="form-group" style={{ gridColumn: 'span 2' }}>
                 <label>Requested Credential Attributes / Claims (Optional)</label>
@@ -559,7 +588,16 @@ export default function ProofPresentationTab({ storedCreds = [] }) {
               </div>
             </div>
 
-            <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'flex-end' }}>
+            <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setShowPayloadPreview(!showPayloadPreview)}
+              >
+                <Code className="w-4 h-4" />
+                {showPayloadPreview ? 'Hide Payload JSON' : 'Preview Payload JSON'}
+              </button>
+
               <button
                 type="submit"
                 className="btn btn-primary"
@@ -571,6 +609,13 @@ export default function ProofPresentationTab({ storedCreds = [] }) {
               </button>
             </div>
           </form>
+
+          {showPayloadPreview && (
+            <div style={{ marginTop: '20px', marginBottom: '20px' }}>
+              <h5 style={{ fontSize: '0.85rem', color: '#94a3b8', marginBottom: '8px' }}>Payload Preview to ACA-Py:</h5>
+              <pre>{JSON.stringify(buildPayload(), null, 2)}</pre>
+            </div>
+          )}
 
           {/* Error Banner */}
           {presentationResult && presentationResult.error && (
@@ -665,10 +710,32 @@ export default function ProofPresentationTab({ storedCreds = [] }) {
                       </div>
                     </div>
 
-                    <div style={{ marginTop: '12px', fontSize: '0.8rem', color: '#64748b' }}>
-                      <strong>Presentation ID:</strong>{' '}
-                      <code style={{ color: '#cbd5e1' }}>{presentationResult.presentation_id || currentRecord?.presentation_id}</code>
+                    <div style={{ marginTop: '12px', fontSize: '0.8rem', color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                      <div>
+                        <strong>Presentation ID:</strong>{' '}
+                        <code style={{ color: '#cbd5e1' }}>{presentationResult.presentation_id || currentRecord?.presentation_id}</code>
+                      </div>
+
+                      <button
+                        type="button"
+                        className="btn btn-secondary"
+                        style={{ fontSize: '0.75rem', padding: '4px 10px' }}
+                        onClick={() => setShowRawJson(!showRawJson)}
+                      >
+                        <FileText className="w-3.5 h-3.5" />
+                        {showRawJson ? 'Hide Request Response JSON' : 'View Request Response JSON'}
+                        {showRawJson ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                      </button>
                     </div>
+
+                    {showRawJson && (
+                      <div style={{ marginTop: '14px' }}>
+                        <h5 style={{ fontSize: '0.8rem', color: '#94a3b8', marginBottom: '6px' }}>Presentation Request ACA-Py Response:</h5>
+                        <pre style={{ maxHeight: '250px', overflowY: 'auto' }}>
+                          {JSON.stringify(presentationResult, null, 2)}
+                        </pre>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}

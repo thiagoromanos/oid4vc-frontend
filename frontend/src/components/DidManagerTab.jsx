@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Key, Plus, RefreshCw, Copy, CheckCircle, ShieldAlert, Sparkles, Globe, Shield } from 'lucide-react';
+import { Key, Plus, RefreshCw, Copy, CheckCircle, ShieldAlert, Sparkles, Globe, Shield, Code } from 'lucide-react';
 import axios from 'axios';
 
 export default function DidManagerTab({ didRecords, fetchDidRecords, onSelectDidForExchange }) {
@@ -10,6 +10,16 @@ export default function DidManagerTab({ didRecords, fetchDidRecords, onSelectDid
   const [result, setResult] = useState(null);
   const [copiedDid, setCopiedDid] = useState(null);
   const [settingPublic, setSettingPublic] = useState(null);
+  const [showJsonPreview, setShowJsonPreview] = useState(false);
+
+  const buildPayload = () => {
+    const payload = {
+      method,
+      key_type: keyType
+    };
+    if (seed.trim()) payload.seed = seed.trim();
+    return payload;
+  };
 
   useEffect(() => {
     fetchDidRecords();
@@ -97,11 +107,20 @@ export default function DidManagerTab({ didRecords, fetchDidRecords, onSelectDid
 
             <div className="form-group">
               <label>Key Type</label>
-              <select value={keyType} onChange={(e) => setKeyType(e.target.value)}>
-                <option value="ed25519">ed25519 (Recommended)</option>
-                <option value="p256">p256 (NIST P-256)</option>
-                <option value="bls12381g2">bls12381g2</option>
-              </select>
+              <input
+                type="text"
+                value={keyType}
+                onChange={(e) => setKeyType(e.target.value)}
+                placeholder="ed25519, p256, bls12381g2..."
+                list="key-type-options"
+                required
+              />
+              <datalist id="key-type-options">
+                <option value="ed25519" />
+                <option value="p256" />
+                <option value="secp256k1" />
+                <option value="bls12381g2" />
+              </datalist>
             </div>
 
             <div className="form-group full-width">
@@ -115,11 +134,29 @@ export default function DidManagerTab({ didRecords, fetchDidRecords, onSelectDid
             </div>
           </div>
 
-          <button type="submit" className="btn btn-primary" disabled={creatingDid}>
-            <Sparkles className="w-4 h-4" />
-            {creatingDid ? 'Creating DID...' : 'Generate & Store DID'}
-          </button>
+          <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
+            <button type="submit" className="btn btn-primary" disabled={creatingDid}>
+              <Sparkles className="w-4 h-4" />
+              {creatingDid ? 'Creating DID...' : 'Generate & Store DID'}
+            </button>
+
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => setShowJsonPreview(!showJsonPreview)}
+            >
+              <Code className="w-4 h-4" />
+              {showJsonPreview ? 'Hide Payload JSON' : 'Preview Payload JSON'}
+            </button>
+          </div>
         </form>
+
+        {showJsonPreview && (
+          <div style={{ marginTop: '20px' }}>
+            <h5 style={{ fontSize: '0.85rem', color: '#94a3b8', marginBottom: '8px' }}>Payload Preview to ACA-Py:</h5>
+            <pre>{JSON.stringify(buildPayload(), null, 2)}</pre>
+          </div>
+        )}
       </div>
 
       {/* Stored DIDs Grid */}
