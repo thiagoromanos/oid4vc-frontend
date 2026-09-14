@@ -338,6 +338,42 @@ func handleCreateTenant(c *gin.Context) {
 				authStepResults["issuerConfig"] = iRes
 				logEntry("Step 6 OK — issuer configuration set", iRes)
 			}
+
+			// Step 7: Create Signing DID
+			logEntry("Step 7: Creating signing DID for tenant via POST /did/jwk/create", nil)
+			didPayload := map[string]interface{}{
+				"key_type": "p256",
+			}
+			didBytes, didCode, didErr := issuerClient.DoRequest(c.Request.Context(), "POST", "/did/jwk/create", didPayload, nil)
+			if didErr != nil || didCode >= 400 {
+				errMsg := formatErrorMsg(didErr, didBytes)
+				logEntry("Step 7 WARN — signing DID creation failed (continuing)", errMsg)
+				authStepResults["didError"] = errMsg
+			} else {
+				var didRes map[string]interface{}
+				_ = json.Unmarshal(didBytes, &didRes)
+				authStepResults["signingDid"] = didRes
+				if did, ok := didRes["did"].(string); ok {
+					logEntry("Step 7 OK — signing DID created", map[string]interface{}{"did": did})
+					// Persist the signing DID to did_records so it is available for credential issuance
+					didRec := DidRecord{
+						DID:       did,
+						Method:    "jwk",
+						KeyType:   "p256",
+						Verkey:    "",
+						Posture:   "wallet_only",
+						Metadata:  map[string]interface{}{},
+						RawRecord: didRes,
+						CreatedAt: time.Now(),
+					}
+					didColl := db.Collection("did_records")
+					didOpts := options.FindOneAndUpdate().SetUpsert(true).SetReturnDocument(options.After)
+					var savedDidRecord DidRecord
+					_ = didColl.FindOneAndUpdate(c.Request.Context(), bson.M{"did": did}, bson.M{"$set": didRec}, didOpts).Decode(&savedDidRecord)
+					authStepResults["signingDidRecord"] = savedDidRecord
+					logEntry("Step 7 OK — signing DID persisted to did_records", map[string]interface{}{"did": did})
+				}
+			}
 		} else {
 			logEntry("Step 6 SKIPPED — authServerPublicUrl or authServerPrivateUrl not provided", nil)
 		}
