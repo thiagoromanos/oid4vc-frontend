@@ -1,0 +1,116 @@
+/*
+ * ============================================================
+ *  OID4VC Frontend — Theme Configuration
+ * ============================================================
+ *
+ *  Green palette anchored on #005234 (darkest).
+ *  Lightest surfaces are near-white so all body text is black
+ *  or very dark for maximum WCAG contrast.
+ *
+ *  Colour scale (light → dark):
+ *    #f0faf4   bg-primary  (very light mint)
+ *    #d6efe2   bg-secondary
+ *    #ffffff   bg-card / bg-input
+ *    #007a4d   accent-primary
+ *    #005234   accent-primary-hover / darkest brand tone
+ *
+ *  Sections
+ *  ─────────────────────────────────────────────────────────
+ *  1. Backgrounds
+ *  2. Borders
+ *  3. Text
+ *  4. Accent / Semantic Colors
+ *  5. Gradients
+ *  6. Shadows
+ *  7. Border Radii
+ *  8. Component-level Surface Tokens
+ *
+ * ============================================================
+ */
+
+:root {
+
+  /* ──────────────────────────────────────────────────────────
+   * 1. BACKGROUNDS
+   * ────────────────────────────────────────────────────────── */
+  --bg-primary:      #f0faf4;
+  --bg-secondary:    #d6efe2;
+  --bg-card:         rgba(255, 255, 255, 0.92);
+  --bg-card-hover:   rgba(255, 255, 255, 1);
+  --bg-input:        #ffffff;
+
+  /* ──────────────────────────────────────────────────────────
+   * 2. BORDERS
+   * ────────────────────────────────────────────────────────── */
+  --border-color:    rgba(0, 82, 52, 0.20);
+  --border-focus:    #007a4d;
+
+  /* ──────────────────────────────────────────────────────────
+   * 3. TEXT
+   *    Dark text on light backgrounds for maximum contrast.
+   * ────────────────────────────────────────────────────────── */
+  --text-primary:    #000000;       /* black — highest contrast */
+  --text-secondary:  #1a1a1a;       /* near-black */
+  --text-muted:      #2d4a3e;       /* dark green-grey, still legible */
+
+  /* ──────────────────────────────────────────────────────────
+   * 4. ACCENT / SEMANTIC COLORS
+   * ────────────────────────────────────────────────────────── */
+  --accent-primary:        #007a4d;
+  --accent-primary-hover:  #005234;
+  --accent-secondary:      #00894f;
+  --accent-success:        #059669;
+  --accent-warning:        #b45309;   /* amber-700, readable on light bg */
+  --accent-danger:         #dc2626;
+
+  /* ──────────────────────────────────────────────────────────
+   * 5. GRADIENTS
+   * ────────────────────────────────────────────────────────── */
+  --gradient-brand: linear-gradient(135deg, #007a4d 0%, #005234 100%);
+  --gradient-card:  linear-gradient(180deg,
+                      rgba(255, 255, 255, 0.95) 0%,
+                      rgba(240, 250, 244, 0.98) 100%);
+  --glass-border:   1px solid rgba(0, 82, 52, 0.15);
+
+  /* gradient hints on body bg — very subtle green glow */
+  --body-gradient-start: rgba(0, 122, 77, 0.08);
+  --body-gradient-end:   rgba(0, 82, 52, 0.06);
+
+  /* ──────────────────────────────────────────────────────────
+   * 6. SHADOWS
+   * ────────────────────────────────────────────────────────── */
+  --shadow-lg: 0 10px 30px -10px rgba(0, 82, 52, 0.15);
+
+  /* ──────────────────────────────────────────────────────────
+   * 7. BORDER RADII
+   * ────────────────────────────────────────────────────────── */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+
+  /* ──────────────────────────────────────────────────────────
+   * 8. COMPONENT-LEVEL SURFACE TOKENS
+   * ────────────────────────────────────────────────────────── */
+  --sub-card-bg:        rgba(214, 239, 226, 0.55);
+  --sub-card-border:    rgba(0, 82, 52, 0.18);
+
+  --code-color:         #005234;     /* dark green — readable on white */
+
+  --tag-bg:             rgba(0, 122, 77, 0.12);
+  --tag-border:         rgba(0, 82, 52, 0.30);
+  --tag-color:          #000000;     /* black for max readability */
+  --tag-remove-color:   #b91c1c;
+
+  --table-head-border:  rgba(0, 82, 52, 0.18);
+  --table-row-border:   rgba(0, 82, 52, 0.08);
+  --table-head-color:   #005234;     /* dark green headers */
+  --table-cell-color:   #000000;     /* black body cells */
+  --table-mono-color:   #1a1a1a;
+
+  --claims-value-color: #004d30;     /* darkest green for verified claims */
+
+  --result-panel-bg:    rgba(240, 250, 244, 0.90);
+  --result-panel-border: rgba(0, 82, 52, 0.25);
+
+}

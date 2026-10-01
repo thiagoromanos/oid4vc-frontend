@@ -1,4 +1,4 @@
-/* Structural styles for the application */
+/* Structural styles for theme1 */
 
 * {
   box-sizing: border-box;
@@ -13,8 +13,8 @@ body {
   line-height: 1.5;
   min-height: 100vh;
   background-image:
-    radial-gradient(at 0% 0%,   var(--body-gradient-start, rgba(148, 163, 184, 0.15)) 0px, transparent 50%),
-    radial-gradient(at 100% 100%, var(--body-gradient-end,   rgba(203, 213, 225, 0.20)) 0px, transparent 50%);
+    radial-gradient(at 0% 0%,   var(--body-gradient-start, rgba(2, 136, 141, 0.08)) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, var(--body-gradient-end,   rgba(1, 95, 99, 0.06)) 0px, transparent 50%);
   background-attachment: fixed;
 }
 
@@ -55,7 +55,7 @@ body {
   align-items: center;
   justify-content: center;
   color: white;
-  box-shadow: 0 4px 14px rgba(71, 85, 105, 0.25);
+  box-shadow: 0 4px 14px rgba(1, 95, 99, 0.25);
 }
 
 .brand-text h1 {
@@ -132,13 +132,13 @@ body {
 
 .tab-btn:hover {
   color: var(--text-primary);
-  background: rgba(0, 82, 52, 0.08);
+  background: rgba(1, 95, 99, 0.08);
 }
 
 .tab-btn.active {
   background: var(--gradient-brand);
   color: white;
-  box-shadow: 0 4px 12px rgba(0, 82, 52, 0.30);
+  box-shadow: 0 4px 12px rgba(1, 95, 99, 0.30);
 }
 
 /* ── Main Content Card ─────────────────────────────────────── */
@@ -218,7 +218,7 @@ textarea {
 
 input:focus, select:focus, textarea:focus {
   border-color: var(--border-focus);
-  box-shadow: 0 0 0 3px rgba(0, 122, 77, 0.18);
+  box-shadow: 0 0 0 3px rgba(2, 136, 141, 0.18);
 }
 
 .input-with-button {
@@ -248,23 +248,23 @@ input:focus, select:focus, textarea:focus {
 .btn-primary {
   background: var(--gradient-brand);
   color: white;
-  box-shadow: 0 4px 14px rgba(0, 82, 52, 0.25);
+  box-shadow: 0 4px 14px rgba(1, 95, 99, 0.25);
 }
 
 .btn-primary:hover {
   opacity: 0.95;
   transform: translateY(-1px);
-  box-shadow: 0 6px 18px rgba(0, 82, 52, 0.35);
+  box-shadow: 0 6px 18px rgba(1, 95, 99, 0.35);
 }
 
 .btn-secondary {
-  background: rgba(0, 82, 52, 0.06);
+  background: rgba(1, 95, 99, 0.06);
   border: 1px solid var(--border-color);
   color: var(--text-primary);
 }
 
 .btn-secondary:hover {
-  background: rgba(0, 82, 52, 0.12);
+  background: rgba(1, 95, 99, 0.12);
 }
 
 .btn-danger {
@@ -335,9 +335,9 @@ input:focus, select:focus, textarea:focus {
 }
 
 .banner-info {
-  background: rgba(71, 85, 105, 0.10);
-  border: 1px solid rgba(71, 85, 105, 0.25);
-  color: #334155;
+  background: rgba(1, 95, 99, 0.10);
+  border: 1px solid rgba(1, 95, 99, 0.25);
+  color: #015f63;
 }
 
 /* ── Code Block ────────────────────────────────────────────── */
@@ -363,7 +363,7 @@ pre {
   padding: 24px;
   background: #ffffff;
   border-radius: var(--radius-lg);
-  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.10);
+  box-shadow: 0 10px 25px rgba(1, 95, 99, 0.10);
   max-width: 320px;
   margin: 0 auto;
 }
@@ -403,7 +403,7 @@ pre {
   border-radius: 12px;
   font-size: 0.75rem;
   font-weight: 600;
-  background: rgba(71, 85, 105, 0.15);
+  background: rgba(1, 95, 99, 0.15);
   color: var(--accent-primary-hover);
 }
 
@@ -431,9 +431,9 @@ pre {
 }
 
 .badge-info {
-  background: rgba(71, 85, 105, 0.10);
-  color: #334155;
-  border: 1px solid rgba(71, 85, 105, 0.20);
+  background: rgba(1, 95, 99, 0.10);
+  color: #015f63;
+  border: 1px solid rgba(1, 95, 99, 0.20);
 }
 
 /* ── Data Table ────────────────────────────────────────────── */

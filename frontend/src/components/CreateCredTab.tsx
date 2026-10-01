@@ -106,7 +106,7 @@ export default function CreateCredTab({ onCredCreated }) {
     const metadataDisplay = displays
       .filter((d) => d.name.trim() && d.locale.trim())
       .map((d) => {
-        const item = {
+        const item: any = {
           name: d.name.trim(),
           locale: d.locale.trim(),
           background_color: d.background_color || '#1e293b',
@@ -275,8 +275,8 @@ export default function CreateCredTab({ onCredCreated }) {
           <div className="attributes-section">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
               <div>
-                <h4 style={{ fontSize: '0.95rem', fontWeight: 600, color: '#cbd5e1', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Palette className="w-4 h-4 text-purple-400" /> Customizable Credential Display Metadata (<code>credential_metadata.display</code>)
+                <h4 style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Palette className="w-4 h-4" /> Customizable Credential Display Metadata (<code>credential_metadata.display</code>)
                 </h4>
                 <p className="label-hint">Customize names, locales, card colors, and logo metadata per language.</p>
               </div>
@@ -289,16 +289,11 @@ export default function CreateCredTab({ onCredCreated }) {
             {displays.map((disp, index) => (
               <div
                 key={index}
-                style={{
-                  background: 'rgba(15, 23, 42, 0.7)',
-                  padding: '16px',
-                  borderRadius: '10px',
-                  border: '1px solid rgba(255, 255, 255, 0.08)',
-                  marginBottom: '14px'
-                }}
+                className="sub-card"
+                style={{ marginBottom: '14px', padding: '16px' }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                  <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#38bdf8' }}>
+                  <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)' }}>
                     Display Entry #{index + 1} ({disp.locale || 'Locale'})
                   </span>
 
@@ -401,8 +396,8 @@ export default function CreateCredTab({ onCredCreated }) {
           <div className="attributes-section">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
               <div>
-                <h4 style={{ fontSize: '0.95rem', fontWeight: 600, color: '#cbd5e1' }}>
-                  🔑 Attributes & Localized Display Labels (<code>claims</code>)
+                <h4 style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                  🔑 Attributes &amp; Localized Display Labels (<code>claims</code>)
                 </h4>
                 <p className="label-hint">Set attribute names, selective disclosure flags (SD), and localized labels.</p>
               </div>
@@ -486,7 +481,7 @@ export default function CreateCredTab({ onCredCreated }) {
 
         {showJsonPreview && (
           <div style={{ marginTop: '20px' }}>
-            <h5 style={{ fontSize: '0.85rem', color: '#94a3b8', marginBottom: '8px' }}>Payload Preview to ACA-Py:</h5>
+            <h5 style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>Payload Preview to ACA-Py:</h5>
             <pre>{JSON.stringify(buildPayload(), null, 2)}</pre>
           </div>
         )}

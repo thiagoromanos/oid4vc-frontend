@@ -26,7 +26,7 @@ export default function CreateExchangeTab({ selectedCredId, storedCreds, selecte
       }
     });
 
-    const payload = {
+    const payload: any = {
       supported_cred_id: currentCredId,
       credential_subject: credential_subject
     };
@@ -121,7 +121,7 @@ export default function CreateExchangeTab({ selectedCredId, storedCreds, selecte
         }
       });
 
-      const payload = {
+      const payload: any = {
         supported_cred_id: currentCredId,
         credential_subject: credential_subject
       };

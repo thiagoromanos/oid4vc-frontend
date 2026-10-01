@@ -159,7 +159,7 @@ export default function ProofPresentationTab({ storedCreds = [] }) {
 
       return { pres_def, vp_formats };
     } else {
-      const fields = [
+      const fields: any[] = [
         {
           path: ["$.vct"],
           filter: {
@@ -546,33 +546,12 @@ export default function ProofPresentationTab({ storedCreds = [] }) {
                 {requestedFields.length > 0 ? (
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                     {requestedFields.map((field) => (
-                      <span
-                        key={field}
-                        style={{
-                          background: 'rgba(99, 102, 241, 0.15)',
-                          border: '1px solid rgba(99, 102, 241, 0.3)',
-                          borderRadius: '20px',
-                          padding: '4px 12px',
-                          fontSize: '0.85rem',
-                          color: '#c7d2fe',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '6px'
-                        }}
-                      >
+                      <span key={field} className="field-tag">
                         <code>$.{cleanFieldName(field)}</code>
                         <button
                           type="button"
+                          className="field-tag-remove"
                           onClick={() => removeRequestedField(field)}
-                          style={{
-                            background: 'none',
-                            border: 'none',
-                            color: '#f87171',
-                            cursor: 'pointer',
-                            padding: 0,
-                            display: 'flex',
-                            alignItems: 'center'
-                          }}
                           title="Remove field"
                         >
                           &times;
@@ -581,7 +560,7 @@ export default function ProofPresentationTab({ storedCreds = [] }) {
                     ))}
                   </div>
                 ) : (
-                  <p style={{ fontSize: '0.75rem', color: '#64748b', margin: 0 }}>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0 }}>
                     Matches standard SD-JWT credentials. The verifier will verify issuer signature, key binding, and nonces.
                   </p>
                 )}
@@ -612,7 +591,7 @@ export default function ProofPresentationTab({ storedCreds = [] }) {
 
           {showPayloadPreview && (
             <div style={{ marginTop: '20px', marginBottom: '20px' }}>
-              <h5 style={{ fontSize: '0.85rem', color: '#94a3b8', marginBottom: '8px' }}>Payload Preview to ACA-Py:</h5>
+              <h5 style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>Payload Preview to ACA-Py:</h5>
               <pre>{JSON.stringify(buildPayload(), null, 2)}</pre>
             </div>
           )}
@@ -630,19 +609,11 @@ export default function ProofPresentationTab({ storedCreds = [] }) {
 
           {/* Active Presentation Result Card & QR Display */}
           {presentationResult && (presentationResult.request_uri || presentationResult.presentation_id) && (
-            <div
-              style={{
-                background: 'rgba(15, 23, 42, 0.7)',
-                border: '1px solid rgba(139, 92, 246, 0.3)',
-                borderRadius: 'var(--radius-lg)',
-                padding: '24px',
-                marginTop: '24px'
-              }}
-            >
+            <div className="result-panel">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <ShieldCheck className="w-6 h-6 text-purple-400" />
-                  <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: 'white', margin: 0 }}>
+                  <ShieldCheck className="w-6 h-6" />
+                  <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>
                     Active OID4VP Presentation Request
                   </h3>
                 </div>
@@ -683,10 +654,10 @@ export default function ProofPresentationTab({ storedCreds = [] }) {
                   </div>
 
                   <div style={{ flex: 1, minWidth: '280px' }}>
-                    <h4 style={{ fontSize: '0.95rem', fontWeight: 600, color: '#e2e8f0', marginBottom: '8px' }}>
+                    <h4 style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>
                       Scan with Wallet App (Paradym / Sphereon)
                     </h4>
-                    <p style={{ fontSize: '0.85rem', color: '#94a3b8', marginBottom: '16px', lineHeight: 1.5 }}>
+                    <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '16px', lineHeight: 1.5 }}>
                       Open your wallet app, select <em>Scan QR</em>, and present the requested credential proof.
                     </p>
 
@@ -704,16 +675,16 @@ export default function ProofPresentationTab({ storedCreds = [] }) {
                           className="btn btn-secondary"
                           onClick={() => copyToClipboard(presentationResult.request_uri)}
                         >
-                          {copiedUri ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                          {copiedUri ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                           {copiedUri ? 'Copied!' : 'Copy'}
                         </button>
                       </div>
                     </div>
 
-                    <div style={{ marginTop: '12px', fontSize: '0.8rem', color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                    <div style={{ marginTop: '12px', fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
                       <div>
                         <strong>Presentation ID:</strong>{' '}
-                        <code style={{ color: '#cbd5e1' }}>{presentationResult.presentation_id || currentRecord?.presentation_id}</code>
+                        <code style={{ color: 'var(--code-color)' }}>{presentationResult.presentation_id || currentRecord?.presentation_id}</code>
                       </div>
 
                       <button
@@ -730,7 +701,7 @@ export default function ProofPresentationTab({ storedCreds = [] }) {
 
                     {showRawJson && (
                       <div style={{ marginTop: '14px' }}>
-                        <h5 style={{ fontSize: '0.8rem', color: '#94a3b8', marginBottom: '6px' }}>Presentation Request ACA-Py Response:</h5>
+                        <h5 style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>Presentation Request ACA-Py Response:</h5>
                         <pre style={{ maxHeight: '250px', overflowY: 'auto' }}>
                           {JSON.stringify(presentationResult, null, 2)}
                         </pre>
@@ -746,15 +717,14 @@ export default function ProofPresentationTab({ storedCreds = [] }) {
                   style={{
                     marginTop: '20px',
                     padding: '20px',
-                    background: 'rgba(16, 185, 129, 0.08)',
-                    border: '1px solid rgba(16, 185, 129, 0.4)',
+                    background: 'rgba(5, 150, 105, 0.06)',
+                    border: '1px solid rgba(5, 150, 105, 0.25)',
                     borderRadius: 'var(--radius-md)',
-                    boxShadow: '0 4px 15px rgba(16, 185, 129, 0.1)'
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-                    <h4 style={{ color: '#10b981', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1.05rem', fontWeight: 600, margin: 0 }}>
-                      <CheckCircle className="w-5 h-5 text-emerald-400" />
+                    <h4 style={{ color: 'var(--accent-success)', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '1.05rem', fontWeight: 600, margin: 0 }}>
+                      <CheckCircle className="w-5 h-5" />
                       Presentation Verified &amp; Data Received from Holder
                     </h4>
 
@@ -772,36 +742,32 @@ export default function ProofPresentationTab({ storedCreds = [] }) {
 
                   {/* Formatted Claims Table */}
                   {hasClaims ? (
-                    <div style={{ background: '#090d16', borderRadius: '8px', padding: '16px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                        <thead>
-                          <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', textAlign: 'left' }}>
-                            <th style={{ padding: '8px 12px', fontSize: '0.8rem', color: '#94a3b8', textTransform: 'uppercase' }}>Claim / Attribute</th>
-                            <th style={{ padding: '8px 12px', fontSize: '0.8rem', color: '#94a3b8', textTransform: 'uppercase' }}>Presented Value</th>
+                    <table className="claims-table">
+                      <thead>
+                        <tr>
+                          <th>Claim / Attribute</th>
+                          <th>Presented Value</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {Object.entries(receivedClaims).map(([key, val]) => (
+                          <tr key={key}>
+                            <td><code>{key}</code></td>
+                            <td>
+                              {typeof val === 'object' && val !== null ? (
+                                <pre style={{ margin: 0, fontSize: '0.8rem' }}>
+                                  {JSON.stringify(val, null, 2)}
+                                </pre>
+                              ) : (
+                                String(val)
+                              )}
+                            </td>
                           </tr>
-                        </thead>
-                        <tbody>
-                          {Object.entries(receivedClaims).map(([key, val]) => (
-                            <tr key={key} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                              <td style={{ padding: '10px 12px', fontWeight: 600, color: '#e2e8f0', fontSize: '0.85rem' }}>
-                                <code>{key}</code>
-                              </td>
-                              <td style={{ padding: '10px 12px', color: '#a7f3d0', fontSize: '0.85rem', fontFamily: typeof val === 'object' ? 'monospace' : 'inherit' }}>
-                                {typeof val === 'object' && val !== null ? (
-                                  <pre style={{ margin: 0, fontSize: '0.8rem', color: '#a7f3d0' }}>
-                                    {JSON.stringify(val, null, 2)}
-                                  </pre>
-                                ) : (
-                                  String(val)
-                                )}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                        ))}
+                      </tbody>
+                    </table>
                   ) : (
-                    <p style={{ fontSize: '0.85rem', color: '#a7f3d0' }}>
+                    <p style={{ fontSize: '0.85rem', color: 'var(--accent-success)' }}>
                       Presentation verified successfully.
                     </p>
                   )}
@@ -809,21 +775,10 @@ export default function ProofPresentationTab({ storedCreds = [] }) {
                   {/* Optional Raw JSON Inspector */}
                   {showRawJson && (
                     <div style={{ marginTop: '16px' }}>
-                      <label style={{ fontSize: '0.8rem', color: '#94a3b8', marginBottom: '4px', display: 'block' }}>
+                      <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '4px', display: 'block' }}>
                         Raw Verified Claims &amp; ACA-Py Record:
                       </label>
-                      <pre
-                        style={{
-                          background: '#040711',
-                          padding: '12px',
-                          borderRadius: '8px',
-                          color: '#6ee7b7',
-                          fontSize: '0.8rem',
-                          fontFamily: 'monospace',
-                          overflowX: 'auto',
-                          maxHeight: '300px'
-                        }}
-                      >
+                      <pre style={{ maxHeight: '300px', overflowY: 'auto' }}>
                         {JSON.stringify(currentRecord, null, 2)}
                       </pre>
                     </div>
@@ -837,15 +792,15 @@ export default function ProofPresentationTab({ storedCreds = [] }) {
                   style={{
                     marginTop: '20px',
                     padding: '16px',
-                    background: 'rgba(239, 68, 68, 0.08)',
-                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                    background: 'rgba(220, 38, 38, 0.06)',
+                    border: '1px solid rgba(220, 38, 38, 0.25)',
                     borderRadius: 'var(--radius-md)'
                   }}
                 >
-                  <h4 style={{ color: '#ef4444', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.95rem', fontWeight: 600, marginBottom: '8px', margin: 0 }}>
+                  <h4 style={{ color: 'var(--accent-danger)', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.95rem', fontWeight: 600, marginBottom: '8px', margin: 0 }}>
                     <AlertCircle className="w-4 h-4" /> Verification Failed / Errors
                   </h4>
-                  <ul style={{ paddingLeft: '20px', color: '#fca5a5', fontSize: '0.85rem', marginTop: '8px' }}>
+                  <ul style={{ paddingLeft: '20px', color: 'var(--accent-danger)', fontSize: '0.85rem', marginTop: '8px' }}>
                     {currentRecord?.errors && currentRecord.errors.length > 0 ? (
                       currentRecord.errors.map((err, idx) => (
                         <li key={idx}>{typeof err === 'object' ? JSON.stringify(err) : String(err)}</li>
@@ -866,19 +821,7 @@ export default function ProofPresentationTab({ storedCreds = [] }) {
                       {showRawJson ? 'Hide Debug Details' : 'View Debug Details / Raw Record'}
                     </button>
                     {showRawJson && (
-                      <pre
-                        style={{
-                          marginTop: '8px',
-                          background: '#040711',
-                          padding: '12px',
-                          borderRadius: '8px',
-                          color: '#fca5a5',
-                          fontSize: '0.8rem',
-                          fontFamily: 'monospace',
-                          overflowX: 'auto',
-                          maxHeight: '300px'
-                        }}
-                      >
+                      <pre style={{ marginTop: '8px', maxHeight: '300px', overflowY: 'auto' }}>
                         {JSON.stringify(currentRecord, null, 2)}
                       </pre>
                     )}
@@ -922,13 +865,13 @@ export default function ProofPresentationTab({ storedCreds = [] }) {
             <div className="table-responsive" style={{ overflowX: 'auto' }}>
               <table className="data-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
-                  <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)', textAlign: 'left' }}>
-                    <th style={{ padding: '12px' }}>Created</th>
-                    <th style={{ padding: '12px' }}>Presentation ID</th>
-                    <th style={{ padding: '12px' }}>Definition ID</th>
-                    <th style={{ padding: '12px' }}>Status</th>
-                    <th style={{ padding: '12px' }}>Verified Claims</th>
-                    <th style={{ padding: '12px', textAlign: 'right' }}>Actions</th>
+                  <tr>
+                    <th>Created</th>
+                    <th>Presentation ID</th>
+                    <th>Definition ID</th>
+                    <th>Status</th>
+                    <th>Verified Claims</th>
+                    <th style={{ textAlign: 'right' }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -937,29 +880,29 @@ export default function ProofPresentationTab({ storedCreds = [] }) {
                     const claimCount = Object.keys(claimsObj).length;
 
                     return (
-                      <tr key={item.presentation_id || item._id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                        <td style={{ padding: '12px', fontSize: '0.8rem', color: '#94a3b8', whiteSpace: 'nowrap' }}>
+                      <tr key={item.presentation_id || item._id}>
+                        <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
                           {new Date(item.createdAt).toLocaleString()}
                         </td>
-                        <td style={{ padding: '12px', fontFamily: 'monospace', fontSize: '0.8rem', color: '#cbd5e1' }}>
+                        <td style={{ fontFamily: 'monospace', fontSize: '0.8rem', color: 'var(--code-color)' }}>
                           {item.presentation_id ? item.presentation_id.substring(0, 16) + '...' : 'N/A'}
                         </td>
-                        <td style={{ padding: '12px', fontSize: '0.85rem' }}>
+                        <td style={{ fontSize: '0.85rem' }}>
                           {item.pres_def_id || 'N/A'}
                         </td>
-                        <td style={{ padding: '12px' }}>
+                        <td>
                           {renderStatusBadge(item.status, item.verified)}
                         </td>
-                        <td style={{ padding: '12px', fontSize: '0.8rem' }}>
+                        <td style={{ fontSize: '0.8rem' }}>
                           {claimCount > 0 ? (
-                            <span style={{ color: '#a7f3d0', fontWeight: 600 }}>
+                            <span style={{ color: 'var(--claims-value-color)', fontWeight: 600 }}>
                               {claimCount} claims received
                             </span>
                           ) : (
-                            <span style={{ color: '#64748b' }}>None</span>
+                            <span style={{ color: 'var(--text-muted)' }}>None</span>
                           )}
                         </td>
-                        <td style={{ padding: '12px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                        <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                           <button
                             type="button"
                             className="btn btn-secondary"
@@ -978,8 +921,8 @@ export default function ProofPresentationTab({ storedCreds = [] }) {
                           </button>
                           <button
                             type="button"
-                            className="btn btn-secondary"
-                            style={{ padding: '4px 8px', fontSize: '0.75rem', color: '#ef4444' }}
+                            className="btn btn-danger"
+                            style={{ padding: '4px 8px', fontSize: '0.75rem' }}
                             onClick={() => handleDeletePresentation(item.presentation_id)}
                           >
                             <Trash2 className="w-3.5 h-3.5" />

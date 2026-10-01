@@ -13,7 +13,7 @@ export default function DidManagerTab({ didRecords, fetchDidRecords, onSelectDid
   const [showJsonPreview, setShowJsonPreview] = useState(false);
 
   const buildPayload = () => {
-    const payload = {
+    const payload: any = {
       method,
       key_type: keyType
     };
@@ -153,7 +153,7 @@ export default function DidManagerTab({ didRecords, fetchDidRecords, onSelectDid
 
         {showJsonPreview && (
           <div style={{ marginTop: '20px' }}>
-            <h5 style={{ fontSize: '0.85rem', color: '#94a3b8', marginBottom: '8px' }}>Payload Preview to ACA-Py:</h5>
+            <h5 style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>Payload Preview to ACA-Py:</h5>
             <pre>{JSON.stringify(buildPayload(), null, 2)}</pre>
           </div>
         )}
@@ -189,21 +189,21 @@ export default function DidManagerTab({ didRecords, fetchDidRecords, onSelectDid
                     <span className={`badge ${d.posture === 'public' ? 'badge-green' : ''}`}>
                       {d.method ? `did:${d.method}` : 'did'} ({d.posture || 'wallet_only'})
                     </span>
-                    <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                       {new Date(d.createdAt || Date.now()).toLocaleDateString()}
                     </span>
                   </div>
 
-                  <h4 style={{ fontSize: '0.85rem', fontFamily: 'monospace', wordBreak: 'break-all', color: '#38bdf8', marginBottom: '10px' }}>
+                  <h4 style={{ fontSize: '0.85rem', fontFamily: 'monospace', wordBreak: 'break-all', color: 'var(--code-color)', marginBottom: '10px' }}>
                     {d.did}
                   </h4>
 
-                  <div style={{ background: 'rgba(255,255,255,0.03)', padding: '10px', borderRadius: '6px', marginBottom: '12px' }}>
-                    <p style={{ fontSize: '0.8rem', color: '#cbd5e1' }}>
+                  <div className="sub-card">
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                       <strong>Key Type:</strong> {d.key_type}
                     </p>
                     {d.verkey && (
-                      <p style={{ fontSize: '0.75rem', color: '#94a3b8', wordBreak: 'break-all', marginTop: '4px' }}>
+                      <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', wordBreak: 'break-all', marginTop: '4px' }}>
                         <strong>Verkey:</strong> {d.verkey}
                       </p>
                     )}
@@ -226,7 +226,7 @@ export default function DidManagerTab({ didRecords, fetchDidRecords, onSelectDid
                       onClick={() => handleSetPublic(d.did)}
                       disabled={settingPublic === d.did}
                     >
-                      <Globe className="w-4 h-4 text-blue-400" /> Set Public
+                      <Globe className="w-4 h-4" /> Set Public
                     </button>
                   )}
 
@@ -242,6 +242,7 @@ export default function DidManagerTab({ didRecords, fetchDidRecords, onSelectDid
           </div>
         )}
       </div>
+
     </div>
   );
 }

@@ -13,7 +13,7 @@ services:
       - frontend-oid4vci-net
 
   backend:
-    image: ghcr.io/thiagoromanos/oid4vc-backend:beta1
+    image: ghcr.io/thiagoromanos/oid4vc-backend:v0.0.1
     build:
       context: .
       dockerfile: backend/Dockerfile
@@ -25,13 +25,19 @@ services:
       - MONGODB_URI=mongodb://mongodb:27017/oid4vci
       - ACAPY_URL=http://host.docker.internal:8021
       # Auth-Server defaults — uncomment and set to pre-populate the UI config
-      #- AUTH_SERVER_URL=http://auth-server:9000
-      #- AUTH_SERVER_ADMIN_TOKEN=changeme
+      - AUTH_SERVER_URL=http://auth-server:9000
+      - AUTH_SERVER_ADMIN_TOKEN=adminsecrettoken
+      - AUTH_SERVER_PRIVATE_URL=http://auth-server:9001
+      - TENANT_SECRET=admininternaltoken
+      # Option A: set AUTH_SERVER_PUBLIC_URL directly (entrypoint skips ngrok discovery)
       #- AUTH_SERVER_PUBLIC_URL=https://your-ngrok-url.io
-      #- AUTH_SERVER_PRIVATE_URL=http://auth-server:9001
-      #- TENANT_SECRET=changeme
-    env_file:
-      - .env
+      # Option B: let the entrypoint discover it from a running ngrok agent
+      - TUNNEL_ENDPOINT=http://ngrok:4040
+      - TUNNEL_NAME=authserver   # default; matches the tunnel name in your ngrok config
+      - WAIT_ATTEMPTS=10         # retry attempts before aborting (default: 10)
+      - WAIT_INTERVAL=3          # seconds between retries (default: 3)
+    # env_file:
+    #   - .env
 
     depends_on:
       - mongodb
@@ -41,7 +47,7 @@ services:
       - frontend-oid4vci-net
 
   frontend:
-    image: ghcr.io/thiagoromanos/oid4vc-frontend-ui:beta1
+    image: ghcr.io/thiagoromanos/oid4vc-frontend-ui:v0.0.1
     build:
       context: .
       dockerfile: frontend/Dockerfile

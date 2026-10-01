@@ -51,7 +51,7 @@ export default function ExchangeHistoryTab() {
         {exchanges.length === 0 ? (
           <div className="banner banner-info">
             <Clock className="w-5 h-5" />
-            <span>No exchanges created yet. Go to "Create Exchange & QR Code" to issue credentials.</span>
+            <span>No exchanges created yet. Go to "Create Exchange &amp; QR Code" to issue credentials.</span>
           </div>
         ) : (
           <div className="form-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))' }}>
@@ -60,21 +60,21 @@ export default function ExchangeHistoryTab() {
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                     <span className="badge badge-green">Exchange</span>
-                    <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                       {new Date(ex.createdAt).toLocaleString()}
                     </span>
                   </div>
 
-                  <h4 style={{ fontSize: '0.95rem', fontWeight: 600, color: '#f8fafc', marginBottom: '4px' }}>
-                    ID: <code style={{ color: '#38bdf8' }}>{ex.exchange_id}</code>
+                  <h4 style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>
+                    ID: <code style={{ color: 'var(--code-color)' }}>{ex.exchange_id}</code>
                   </h4>
 
-                  <p style={{ fontSize: '0.85rem', color: '#94a3b8', marginBottom: '8px' }}>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>
                     Supported Cred: <strong>{ex.supported_cred_id}</strong>
                   </p>
 
-                  <div style={{ background: 'rgba(255,255,255,0.03)', padding: '10px', borderRadius: '6px', marginBottom: '12px' }}>
-                    <span style={{ fontSize: '0.75rem', color: '#64748b', display: 'block', marginBottom: '4px' }}>Subject Data:</span>
+                  <div className="sub-card">
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Subject Data:</span>
                     <pre style={{ fontSize: '0.75rem', padding: '6px' }}>
                       {JSON.stringify(ex.credential_subject, null, 2)}
                     </pre>
@@ -86,7 +86,7 @@ export default function ExchangeHistoryTab() {
                   style={{ width: '100%' }}
                   onClick={() => setSelectedExchange(ex)}
                 >
-                  <QrCode className="w-4 h-4 text-purple-400" /> View Offer QR Code
+                  <QrCode className="w-4 h-4" /> View Offer QR Code
                 </button>
               </div>
             ))}
@@ -96,10 +96,10 @@ export default function ExchangeHistoryTab() {
 
       {/* Selected Exchange QR Modal */}
       {selectedExchange && (
-        <div className="card" style={{ border: '1px solid rgba(139, 92, 246, 0.4)' }}>
+        <div className="card" style={{ borderColor: 'var(--border-focus)' }}>
           <div className="card-title" style={{ justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <QrCode className="w-5 h-5 text-purple-400" />
+              <QrCode className="w-5 h-5" />
               <span>Exchange Offer QR Code: <code>{selectedExchange.exchange_id}</code></span>
             </div>
 
@@ -124,17 +124,15 @@ export default function ExchangeHistoryTab() {
                     fontSize: '0.75rem',
                     fontFamily: 'monospace',
                     marginBottom: '10px',
-                    background: '#f1f5f9',
-                    color: '#0f172a'
                   }}
                 />
                 <button
-                  className="btn btn-secondary btn-sm"
-                  style={{ width: '100%', background: '#0f172a', color: '#ffffff' }}
+                  className="btn btn-primary btn-sm"
+                  style={{ width: '100%' }}
                   onClick={() => copyToClipboard(selectedExchange.credential_offer, selectedExchange.exchange_id)}
                 >
                   {copiedId === selectedExchange.exchange_id ? (
-                    <CheckCircle className="w-4 h-4 text-emerald-400" />
+                    <CheckCircle className="w-4 h-4" />
                   ) : (
                     <Copy className="w-4 h-4" />
                   )}

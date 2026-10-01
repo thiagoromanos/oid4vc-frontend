@@ -1,0 +1,105 @@
+/*
+ * ============================================================
+ *  OID4VC Frontend — Theme 1 Configuration (#015f63 Teal)
+ * ============================================================
+ *
+ *  Teal palette anchored on #015f63 (darkest).
+ *  Lightest surfaces are near-white soft teal tint so all body text
+ *  is black or very dark for maximum WCAG accessibility & contrast.
+ *
+ *  Colour scale (light → dark):
+ *    #f0f7f7   bg-primary  (very light teal tint)
+ *    #d4e9e9   bg-secondary
+ *    #ffffff   bg-card / bg-input
+ *    #02888d   accent-primary
+ *    #015f63   accent-primary-hover / darkest brand tone
+ *
+ * ============================================================
+ */
+
+:root {
+
+  /* ──────────────────────────────────────────────────────────
+   * 1. BACKGROUNDS
+   * ────────────────────────────────────────────────────────── */
+  --bg-primary:      #f0f7f7;
+  --bg-secondary:    #d4e9e9;
+  --bg-card:         rgba(255, 255, 255, 0.92);
+  --bg-card-hover:   rgba(255, 255, 255, 1);
+  --bg-input:        #ffffff;
+
+  /* ──────────────────────────────────────────────────────────
+   * 2. BORDERS
+   * ────────────────────────────────────────────────────────── */
+  --border-color:    rgba(1, 95, 99, 0.20);
+  --border-focus:    #02888d;
+
+  /* ──────────────────────────────────────────────────────────
+   * 3. TEXT
+   *    Dark text on light backgrounds for maximum contrast.
+   * ────────────────────────────────────────────────────────── */
+  --text-primary:    #000000;       /* black — highest contrast */
+  --text-secondary:  #1a1a1a;       /* near-black */
+  --text-muted:      #204a4c;       /* dark teal-grey, highly legible */
+
+  /* ──────────────────────────────────────────────────────────
+   * 4. ACCENT / SEMANTIC COLORS
+   * ────────────────────────────────────────────────────────── */
+  --accent-primary:        #02888d;
+  --accent-primary-hover:  #015f63;
+  --accent-secondary:      #029fa5;
+  --accent-success:        #059669;
+  --accent-warning:        #b45309;
+  --accent-danger:         #dc2626;
+
+  /* ──────────────────────────────────────────────────────────
+   * 5. GRADIENTS
+   * ────────────────────────────────────────────────────────── */
+  --gradient-brand: linear-gradient(135deg, #02888d 0%, #015f63 100%);
+  --gradient-card:  linear-gradient(180deg,
+                      rgba(255, 255, 255, 0.95) 0%,
+                      rgba(240, 247, 247, 0.98) 100%);
+  --glass-border:   1px solid rgba(1, 95, 99, 0.15);
+
+  /* gradient hints on body bg — very subtle teal glow */
+  --body-gradient-start: rgba(2, 136, 141, 0.08);
+  --body-gradient-end:   rgba(1, 95, 99, 0.06);
+
+  /* ──────────────────────────────────────────────────────────
+   * 6. SHADOWS
+   * ────────────────────────────────────────────────────────── */
+  --shadow-lg: 0 10px 30px -10px rgba(1, 95, 99, 0.15);
+
+  /* ──────────────────────────────────────────────────────────
+   * 7. BORDER RADII
+   * ────────────────────────────────────────────────────────── */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+
+  /* ──────────────────────────────────────────────────────────
+   * 8. COMPONENT-LEVEL SURFACE TOKENS
+   * ────────────────────────────────────────────────────────── */
+  --sub-card-bg:        rgba(212, 233, 233, 0.55);
+  --sub-card-border:    rgba(1, 95, 99, 0.18);
+
+  --code-color:         #015f63;     /* dark teal — readable on white */
+
+  --tag-bg:             rgba(2, 136, 141, 0.12);
+  --tag-border:         rgba(1, 95, 99, 0.30);
+  --tag-color:          #000000;     /* black for max readability */
+  --tag-remove-color:   #b91c1c;
+
+  --table-head-border:  rgba(1, 95, 99, 0.18);
+  --table-row-border:   rgba(1, 95, 99, 0.08);
+  --table-head-color:   #015f63;     /* dark teal headers */
+  --table-cell-color:   #000000;     /* black body cells */
+  --table-mono-color:   #1a1a1a;
+
+  --claims-value-color: #015053;     /* darkest teal for verified claims */
+
+  --result-panel-bg:    rgba(240, 247, 247, 0.90);
+  --result-panel-border: rgba(1, 95, 99, 0.25);
+
+}

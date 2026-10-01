@@ -60,27 +60,27 @@ export default function StoredCredsTab({ storedCreds, fetchStoredCreds, onSelect
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
                       <span className="badge badge-green">{cred.format || 'vc+sd-jwt'}</span>
-                      <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                         {new Date(cred.createdAt || Date.now()).toLocaleDateString()}
                       </span>
                     </div>
 
-                    <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#f8fafc', marginBottom: '4px' }}>
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>
                       {cred.supported_cred_id}
                     </h3>
 
-                    <p style={{ fontSize: '0.85rem', color: '#94a3b8', marginBottom: '12px' }}>
-                      VCT: <code style={{ color: '#38bdf8' }}>{cred.vct}</code>
+                    <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '12px' }}>
+                      VCT: <code style={{ color: 'var(--code-color)' }}>{cred.vct}</code>
                     </p>
 
                     {(displayEn || displayPt) && (
-                      <div style={{ background: 'rgba(255,255,255,0.03)', padding: '8px 12px', borderRadius: '6px', marginBottom: '12px' }}>
-                        {displayEn && <div style={{ fontSize: '0.8rem', color: '#e2e8f0' }}>🇺🇸 {displayEn}</div>}
-                        {displayPt && <div style={{ fontSize: '0.8rem', color: '#e2e8f0' }}>🇧🇷 {displayPt}</div>}
+                      <div className="sub-card">
+                        {displayEn && <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>🇺🇸 {displayEn}</div>}
+                        {displayPt && <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>🇧🇷 {displayPt}</div>}
                       </div>
                     )}
 
-                    <div style={{ display: 'flex', gap: '8px', fontSize: '0.8rem', color: '#94a3b8', marginBottom: '16px' }}>
+                    <div style={{ display: 'flex', gap: '8px', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '16px' }}>
                       <span>🔑 {claimsCount} Attributes</span>
                       <span>•</span>
                       <span>🔒 {cred.sd_list?.length || 0} SD Fields</span>
@@ -112,10 +112,10 @@ export default function StoredCredsTab({ storedCreds, fetchStoredCreds, onSelect
 
       {/* Inspection Modal / Detail Drawer */}
       {inspectingId && (
-        <div className="card" style={{ border: '1px solid rgba(59, 130, 246, 0.4)' }}>
+        <div className="card" style={{ borderColor: 'var(--border-focus)' }}>
           <div className="card-title" style={{ justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <ShieldCheck className="w-5 h-5 text-blue-400" />
+              <ShieldCheck className="w-5 h-5" />
               <span>Inspection of <code>{inspectingId}</code></span>
             </div>
 
@@ -139,8 +139,8 @@ export default function StoredCredsTab({ storedCreds, fetchStoredCreds, onSelect
               {/* Claims Breakdown */}
               {inspectedRecord.credential_metadata?.claims && (
                 <div style={{ marginBottom: '20px' }}>
-                  <h4 style={{ fontSize: '0.9rem', color: '#cbd5e1', marginBottom: '10px' }}>
-                    Defined Attributes & Localized Display Labels:
+                  <h4 style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '10px' }}>
+                    Defined Attributes &amp; Localized Display Labels:
                   </h4>
                   <div style={{ display: 'grid', gap: '8px' }}>
                     {inspectedRecord.credential_metadata.claims.map((claim, i) => {
@@ -151,18 +151,15 @@ export default function StoredCredsTab({ storedCreds, fetchStoredCreds, onSelect
                       return (
                         <div
                           key={i}
+                          className="sub-card"
                           style={{
-                            background: 'rgba(15, 23, 42, 0.7)',
-                            padding: '10px 14px',
-                            borderRadius: '8px',
                             display: 'flex',
-                            justify: 'space-between',
+                            justifyContent: 'space-between',
                             alignItems: 'center',
-                            border: '1px solid rgba(255,255,255,0.05)'
                           }}
                         >
                           <div>
-                            <strong style={{ color: '#38bdf8' }}>{attrKey}</strong>
+                            <strong style={{ color: 'var(--code-color)' }}>{attrKey}</strong>
                           </div>
                           <div style={{ display: 'flex', gap: '16px', fontSize: '0.85rem' }}>
                             {enLabel && <span>🇺🇸 <strong>{enLabel}</strong></span>}
@@ -175,11 +172,11 @@ export default function StoredCredsTab({ storedCreds, fetchStoredCreds, onSelect
                 </div>
               )}
 
-              <h4 style={{ fontSize: '0.9rem', color: '#cbd5e1', marginBottom: '8px' }}>Full Record JSON:</h4>
+              <h4 style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>Full Record JSON:</h4>
               <pre>{JSON.stringify(inspectedRecord, null, 2)}</pre>
             </div>
           ) : !error ? (
-            <p style={{ color: '#94a3b8' }}>Loading record from ACA-Py...</p>
+            <p style={{ color: 'var(--text-secondary)' }}>Loading record from ACA-Py...</p>
           ) : null}
         </div>
       )}

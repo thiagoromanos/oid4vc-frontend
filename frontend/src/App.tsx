@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Server, FileCode, Database, RefreshCw, History, Key, ShieldCheck } from 'lucide-react';
+import { Shield, Server, FileCode, Database, RefreshCw, History, Key, ShieldCheck, Palette } from 'lucide-react';
 import axios from 'axios';
 
 import ConfigTab from './components/ConfigTab';
@@ -9,6 +9,14 @@ import DidManagerTab from './components/DidManagerTab';
 import CreateExchangeTab from './components/CreateExchangeTab';
 import ExchangeHistoryTab from './components/ExchangeHistoryTab';
 import ProofPresentationTab from './components/ProofPresentationTab';
+
+import themeEmerald from './theme.css?inline';
+import themeTeal from './theme1.css?inline';
+
+const THEME_MAP = {
+  emerald: themeEmerald,
+  teal: themeTeal
+};
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('config');
@@ -21,6 +29,30 @@ export default function App() {
   const [didRecords, setDidRecords] = useState([]);
   const [selectedCredIdForExchange, setSelectedCredIdForExchange] = useState('');
   const [selectedDidForExchange, setSelectedDidForExchange] = useState('');
+
+  // Available themes registry — easy to extend in the future
+  const themes = [
+    { id: 'emerald', name: 'Emerald (#005234)' },
+    { id: 'teal', name: 'Teal (#015f63)' }
+  ];
+
+  const [activeTheme, setActiveTheme] = useState(() => {
+    return localStorage.getItem('app_theme') || 'emerald';
+  });
+
+  // Switch dynamic theme CSS custom properties in document head
+  useEffect(() => {
+    localStorage.setItem('app_theme', activeTheme);
+    const cssContent = THEME_MAP[activeTheme] || THEME_MAP.emerald;
+
+    let styleElem = document.getElementById('dynamic-theme-style');
+    if (!styleElem) {
+      styleElem = document.createElement('style');
+      styleElem.id = 'dynamic-theme-style';
+      document.head.appendChild(styleElem);
+    }
+    styleElem.innerHTML = cssContent;
+  }, [activeTheme]);
 
   // Fetch current backend configuration
   const fetchConfig = async () => {
@@ -90,6 +122,32 @@ export default function App() {
         </div>
 
         <div className="status-bar">
+          {/* Theme Switcher Dropdown (to the left of auth-server address) */}
+          <div className="status-badge theme-switcher-badge" style={{ padding: '4px 10px' }}>
+            <Palette className="w-3.5 h-3.5" style={{ color: 'var(--accent-primary)' }} />
+            <select
+              value={activeTheme}
+              onChange={(e) => setActiveTheme(e.target.value)}
+              className="theme-select"
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--text-secondary)',
+                fontSize: '0.8rem',
+                fontWeight: 500,
+                cursor: 'pointer',
+                outline: 'none',
+                paddingRight: '4px'
+              }}
+            >
+              {themes.map((t) => (
+                <option key={t.id} value={t.id} style={{ background: 'var(--bg-input)', color: 'var(--text-primary)' }}>
+                  {t.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
           <div className="status-badge">
             <Server className="w-3.5 h-3.5 text-blue-400" />
             <span style={{ fontSize: '0.75rem', fontFamily: 'monospace' }}>{config.acapyUrl}</span>
