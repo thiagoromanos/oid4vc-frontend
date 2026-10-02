@@ -18,7 +18,9 @@ export default function CreateCredTab({ onCredCreated }) {
       background_color: '#1e293b',
       text_color: '#ffffff',
       logoUri: '',
-      logoAltText: ''
+      logoAltText: '',
+      backgroundImageUri: '',
+      backgroundImageAltText: ''
     },
     {
       name: 'Carteira de Identidade Nacional',
@@ -26,7 +28,9 @@ export default function CreateCredTab({ onCredCreated }) {
       background_color: '#1e293b',
       text_color: '#ffffff',
       logoUri: '',
-      logoAltText: ''
+      logoAltText: '',
+      backgroundImageUri: '',
+      backgroundImageAltText: ''
     }
   ]);
 
@@ -53,7 +57,9 @@ export default function CreateCredTab({ onCredCreated }) {
         background_color: '#1e293b',
         text_color: '#ffffff',
         logoUri: '',
-        logoAltText: ''
+        logoAltText: '',
+        backgroundImageUri: '',
+        backgroundImageAltText: ''
       }
     ]);
   };
@@ -116,6 +122,12 @@ export default function CreateCredTab({ onCredCreated }) {
           item.logo = {
             uri: d.logoUri.trim(),
             ...(d.logoAltText && d.logoAltText.trim() ? { alt_text: d.logoAltText.trim() } : {})
+          };
+        }
+        if (d.backgroundImageUri && d.backgroundImageUri.trim()) {
+          item.background_image = {
+            uri: d.backgroundImageUri.trim(),
+            ...(d.backgroundImageAltText && d.backgroundImageAltText.trim() ? { alt_text: d.backgroundImageAltText.trim() } : {})
           };
         }
         return item;
@@ -385,6 +397,26 @@ export default function CreateCredTab({ onCredCreated }) {
                       value={disp.logoAltText}
                       onChange={(e) => updateDisplayEntry(index, 'logoAltText', e.target.value)}
                       placeholder="Logo image description"
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label>Background Image URI <span className="label-hint">Optional (OID4VCI spec)</span></label>
+                    <input
+                      type="url"
+                      value={disp.backgroundImageUri}
+                      onChange={(e) => updateDisplayEntry(index, 'backgroundImageUri', e.target.value)}
+                      placeholder="https://example.com/background.png"
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label>Background Image Alt Text <span className="label-hint">Optional</span></label>
+                    <input
+                      type="text"
+                      value={disp.backgroundImageAltText}
+                      onChange={(e) => updateDisplayEntry(index, 'backgroundImageAltText', e.target.value)}
+                      placeholder="Background image description"
                     />
                   </div>
                 </div>
