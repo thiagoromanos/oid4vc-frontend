@@ -57,6 +57,8 @@ func main() {
 
 		// Supported Credentials
 		api.POST("/credential-supported/create-sd-jwt", handleCreateSdJwtSupported)
+		api.POST("/credential-supported/create-jwt", handleCreateJwtSupported)
+		api.POST("/credential-supported/create-mso-mdoc", handleCreateMsoMdocSupported)
 		api.GET("/credential-supported/records", handleGetSupportedRecords)
 		api.GET("/credential-supported/records/:supported_cred_id", handleGetSupportedRecordByID)
 

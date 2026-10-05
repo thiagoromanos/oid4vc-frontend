@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Server, FileCode, Database, RefreshCw, History, Key, ShieldCheck, Palette } from 'lucide-react';
+import { Shield, Server, FileCode, FileText, FileCheck, Database, RefreshCw, History, Key, ShieldCheck, Palette } from 'lucide-react';
 import axios from 'axios';
 
 import ConfigTab from './components/ConfigTab';
 import CreateCredTab from './components/CreateCredTab';
+import CreateJwtVcTab from './components/CreateJwtVcTab';
+import CreateMsoMdocTab from './components/CreateMsoMdocTab';
 import StoredCredsTab from './components/StoredCredsTab';
 import DidManagerTab from './components/DidManagerTab';
 import CreateExchangeTab from './components/CreateExchangeTab';
@@ -177,6 +179,20 @@ export default function App() {
         </button>
 
         <button
+          className={`tab-btn ${activeTab === 'create-jwt-vc' ? 'active' : ''}`}
+          onClick={() => setActiveTab('create-jwt-vc')}
+        >
+          <FileText className="w-4 h-4" /> Create Supported JWT-VC
+        </button>
+
+        <button
+          className={`tab-btn ${activeTab === 'create-mso-mdoc' ? 'active' : ''}`}
+          onClick={() => setActiveTab('create-mso-mdoc')}
+        >
+          <FileCheck className="w-4 h-4" /> Create Supported mso-mdoc
+        </button>
+
+        <button
           className={`tab-btn ${activeTab === 'stored-creds' ? 'active' : ''}`}
           onClick={() => setActiveTab('stored-creds')}
         >
@@ -220,6 +236,14 @@ export default function App() {
 
         {activeTab === 'create-cred' && (
           <CreateCredTab onCredCreated={handleCredCreated} />
+        )}
+
+        {activeTab === 'create-jwt-vc' && (
+          <CreateJwtVcTab onCredCreated={handleCredCreated} />
+        )}
+
+        {activeTab === 'create-mso-mdoc' && (
+          <CreateMsoMdocTab onCredCreated={handleCredCreated} />
         )}
 
         {activeTab === 'stored-creds' && (

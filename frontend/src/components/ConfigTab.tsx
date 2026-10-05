@@ -215,9 +215,8 @@ export default function ConfigTab({ config, fetchConfig }) {
           <span>Create Tenant &amp; Obtain Bearer Token</span>
         </div>
         <p className="card-subtitle">
-          Provisions a new ACA-Py subwallet and retrieves its Bearer Token. When Auth-Server settings
-          are configured above, also runs the full auth-server setup sequence: create tenant &rarr; create
-          signing key (ES256) &rarr; create OAuth client &rarr; configure ACA-Py issuer metadata.
+          Provisions a new ACA-Py subwallet and retrieves its Bearer Token. Configures auth-server,
+          signing DID (JWK), imports mDOC signing key, and registers mDOC trust anchor.
         </p>
 
         <form onSubmit={handleCreateTenant}>
@@ -301,6 +300,11 @@ export default function ConfigTab({ config, fetchConfig }) {
                   <p style={{ fontSize: '0.85rem', marginBottom: '6px', color: '#94a3b8' }}>
                     <strong>Wallet ID:</strong> {tenantResult.wallet_id}
                   </p>
+                  {tenantResult.authStepResults?.mdocSigningKey?.id && (
+                    <p style={{ fontSize: '0.85rem', marginBottom: '6px', color: '#38bdf8' }}>
+                      <strong>mDOC Signing Key ID:</strong> {tenantResult.authStepResults.mdocSigningKey.id}
+                    </p>
+                  )}
                   <label style={{ marginBottom: '6px', color: '#f8fafc' }}>
                     Generated Bearer Token:
                   </label>

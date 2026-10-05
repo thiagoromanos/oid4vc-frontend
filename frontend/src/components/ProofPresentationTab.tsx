@@ -108,6 +108,7 @@ export default function ProofPresentationTab({ storedCreds = [] }) {
             { namespace: "org.iso.18013.5.1", claim_name: "given_name" },
             { namespace: "org.iso.18013.5.1", claim_name: "document_number" },
             { namespace: "org.iso.18013.5.1", claim_name: "issuing_country" },
+            { namespace: "org.iso.18013.5.1", claim_name: "un_distinguishing_sign" },
             { namespace: "org.iso.18013.5.1", claim_name: "expiry_date" }
           ];
 

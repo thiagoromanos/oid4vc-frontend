@@ -78,7 +78,9 @@ export default function CreateExchangeTab({ selectedCredId, storedCreds, selecte
 
       if (claims.length > 0) {
         claims.forEach((claim) => {
-          const key = Array.isArray(claim.path) ? claim.path[0] : claim.path;
+          // For mso-mdoc, path is [namespace, attrName] — use the last element.
+          // For sd-jwt / jwt-vc, path is [attrName] — last element is still correct.
+          const key = Array.isArray(claim.path) ? claim.path[claim.path.length - 1] : claim.path;
           initialValues[key] = '';
         });
       } else if (record.sd_list && record.sd_list.length > 0) {
@@ -152,7 +154,7 @@ export default function CreateExchangeTab({ selectedCredId, storedCreds, selecte
   const getClaimLabels = (key) => {
     const claims = credDefinition?.credential_metadata?.claims || [];
     const found = claims.find((c) => {
-      const pathKey = Array.isArray(c.path) ? c.path[0] : c.path;
+      const pathKey = Array.isArray(c.path) ? c.path[c.path.length - 1] : c.path;
       return pathKey === key;
     });
 

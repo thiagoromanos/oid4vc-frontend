@@ -81,6 +81,25 @@ func handlePostConfig(c *gin.Context) {
 
 // --- MULTITENANCY ENDPOINTS ---
 
+const defaultMdocCertPEM = "-----BEGIN CERTIFICATE-----\n" +
+	"MIIB1DCCAXmgAwIBAgIIdNRHwTfOGwcwCgYIKoZIzj0EAwIwDTELMAkGA1UEBhMC\n" +
+	"Q0EwHhcNMjYwNDEzMTkyNDAwWhcNMzYwNDEzMTkyNDAwWjANMQswCQYDVQQGEwJD\n" +
+	"QTBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABNKdpd24SPAyNLWNd4J/hlEU5awn\n" +
+	"h26s4sQnJ6cy5tzF92eoNCoz/RKeUD2pCUStdJhN3qYnXgnMbDqLlGIt0bmjgcIw\n" +
+	"gb8wEgYDVR0TAQH/BAgwBgEB/wIBADAdBgNVHQ4EFgQUQHLNvJUIYoRcUOiu5qhb\n" +
+	"vaxt4UgwDgYDVR0PAQH/BAQDAgEGMCIGA1UdEgQbMBmGF21haWx0bzp1c2VyQGV4\n" +
+	"YW1wbGUuY29tMCMGA1UdHwQcMBowGKAWoBSGEmh0dHA6Ly9leGFtcGxlLmNvbTAR\n" +
+	"BglghkgBhvhCAQEEBAMCAAcwHgYJYIZIAYb4QgENBBEWD3hjYSBjZXJ0aWZpY2F0\n" +
+	"ZTAKBggqhkjOPQQDAgNJADBGAiEA0zfq5zFY1hz9E//K9n/JlcVDZ+WN1bTduq8u\n" +
+	"/MXtoPkCIQCQw3KbsNB9e/2yskidmuJe5CdFK3VvZpw0SC8IsG2H5A==\n" +
+	"-----END CERTIFICATE-----\n"
+
+const defaultMdocPrivateKeyPEM = "-----BEGIN PRIVATE KEY-----\n" +
+	"MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQg6Al13xaXxheg2tsc\n" +
+	"IQEdUKWRqaCAdcHCfPxw6+yTufWhRANCAATSnaXduEjwMjS1jXeCf4ZRFOWsJ4du\n" +
+	"rOLEJyenMubcxfdnqDQqM/0SnlA9qQlErXSYTd6mJ14JzGw6i5RiLdG5\n" +
+	"-----END PRIVATE KEY-----\n"
+
 func handleCreateTenant(c *gin.Context) {
 	var logs []string
 	logEntry := func(msg string, data interface{}) {
@@ -213,6 +232,13 @@ func handleCreateTenant(c *gin.Context) {
 	token, _ := tokenData["token"].(string)
 	logEntry("Step 2 OK — token obtained", nil)
 
+	tenantClient := &AcapyClient{
+		BaseURL:     strings.TrimRight(targetURL, "/"),
+		BearerToken: token,
+		AdminAPIKey: targetAdminKey,
+		HTTPClient:  &http.Client{Timeout: 15 * time.Second},
+	}
+
 	// ── STEPS 3-5: Auth-server setup (optional) ──
 	authStepResults := make(map[string]interface{})
 	if resolvedAuthServerURL != "" {
@@ -321,13 +347,7 @@ func handleCreateTenant(c *gin.Context) {
 			}
 			logEntry("Step 6: Issuer configuration payload", issuerPayload)
 
-			issuerClient := &AcapyClient{
-				BaseURL:     strings.TrimRight(targetURL, "/"),
-				BearerToken: token,
-				AdminAPIKey: targetAdminKey,
-				HTTPClient:  &http.Client{Timeout: 15 * time.Second},
-			}
-			b6, code6, err6 := issuerClient.DoRequest(c.Request.Context(), "PUT", "/oid4vci/issuer/configuration", issuerPayload, nil)
+			b6, code6, err6 := tenantClient.DoRequest(c.Request.Context(), "PUT", "/oid4vci/issuer/configuration", issuerPayload, nil)
 			if err6 != nil || code6 >= 400 {
 				errMsg := formatErrorMsg(err6, b6)
 				logEntry("Step 6 WARN — issuer configuration failed (continuing)", errMsg)
@@ -344,7 +364,7 @@ func handleCreateTenant(c *gin.Context) {
 			didPayload := map[string]interface{}{
 				"key_type": "p256",
 			}
-			didBytes, didCode, didErr := issuerClient.DoRequest(c.Request.Context(), "POST", "/did/jwk/create", didPayload, nil)
+			didBytes, didCode, didErr := tenantClient.DoRequest(c.Request.Context(), "POST", "/did/jwk/create", didPayload, nil)
 			if didErr != nil || didCode >= 400 {
 				errMsg := formatErrorMsg(didErr, didBytes)
 				logEntry("Step 7 WARN — signing DID creation failed (continuing)", errMsg)
@@ -379,6 +399,56 @@ func handleCreateTenant(c *gin.Context) {
 		}
 	} else {
 		logEntry("Steps 3-6 SKIPPED — no authServerUrl provided", nil)
+	}
+
+	// ── STEP 8: Import mDOC Signing Key ──
+	mdocCert := defaultMdocCertPEM
+	if val, ok := reqBody["mdoc_certificate_pem"].(string); ok && val != "" {
+		mdocCert = val
+	}
+	mdocPrivKey := defaultMdocPrivateKeyPEM
+	if val, ok := reqBody["mdoc_private_key_pem"].(string); ok && val != "" {
+		mdocPrivKey = val
+	}
+
+	logEntry("Step 8: Importing mDOC signing key via POST /mso-mdoc/signing-keys/import", nil)
+	mdocKeyPayload := map[string]interface{}{
+		"certificate_pem": mdocCert,
+		"private_key_pem": mdocPrivKey,
+		"doctype":         "org.iso.18013.5.1.mDL",
+		"label":           "mDOC signing key",
+	}
+	b8, code8, err8 := tenantClient.DoRequest(c.Request.Context(), "POST", "/mso-mdoc/signing-keys/import", mdocKeyPayload, nil)
+	if err8 != nil || code8 >= 400 {
+		errMsg := formatErrorMsg(err8, b8)
+		logEntry("Step 8 WARN — mDOC signing key import failed (continuing)", errMsg)
+		authStepResults["mdocSigningKeyError"] = errMsg
+	} else {
+		var kRes map[string]interface{}
+		_ = json.Unmarshal(b8, &kRes)
+		authStepResults["mdocSigningKey"] = kRes
+		if keyID, ok := kRes["id"].(string); ok {
+			logEntry("Step 8 OK — mDOC signing key imported", map[string]interface{}{"id": keyID})
+		} else {
+			logEntry("Step 8 OK — mDOC signing key imported", kRes)
+		}
+	}
+
+	// ── STEP 9: Register mDOC Trust Anchor ──
+	logEntry("Step 9: Registering mDOC trust anchor via POST /mso-mdoc/trust-anchors", nil)
+	mdocTrustPayload := map[string]interface{}{
+		"certificate_pem": mdocCert,
+	}
+	b9, code9, err9 := tenantClient.DoRequest(c.Request.Context(), "POST", "/mso-mdoc/trust-anchors", mdocTrustPayload, nil)
+	if err9 != nil || code9 >= 400 {
+		errMsg := formatErrorMsg(err9, b9)
+		logEntry("Step 9 WARN — mDOC trust anchor registration failed (continuing)", errMsg)
+		authStepResults["mdocTrustAnchorError"] = errMsg
+	} else {
+		var tRes map[string]interface{}
+		_ = json.Unmarshal(b9, &tRes)
+		authStepResults["mdocTrustAnchor"] = tRes
+		logEntry("Step 9 OK — mDOC trust anchor registered", tRes)
 	}
 
 	// Persist to MongoDB Config
@@ -721,6 +791,200 @@ func handleCreateSdJwtSupported(c *gin.Context) {
 	signingAlgs := parseStringArray(payload["credential_signing_alg_values_supported"])
 	if len(signingAlgs) == 0 {
 		signingAlgs = []string{"ES256K"}
+	}
+
+	metadata, _ := payload["credential_metadata"].(map[string]interface{})
+	if metadata == nil {
+		metadata, _ = acapyRecord["credential_metadata"].(map[string]interface{})
+	}
+	if metadata == nil {
+		metadata = map[string]interface{}{}
+	}
+
+	rec := SupportedCredential{
+		SupportedCredID:                      supportedCredID,
+		Identifier:                           identifier,
+		VCT:                                  vct,
+		Format:                               format,
+		SDList:                               sdList,
+		CryptographicBindingMethodsSupported: cryptoMethods,
+		CredentialSigningAlgValuesSupported:  signingAlgs,
+		CredentialMetadata:                   metadata,
+		RawRecord:                            acapyRecord,
+		UpdatedAt:                            time.Now(),
+		CreatedAt:                            time.Now(),
+	}
+
+	coll := db.Collection("supported_credentials")
+	opts := options.FindOneAndUpdate().SetUpsert(true).SetReturnDocument(options.After)
+	var savedRecord SupportedCredential
+	_ = coll.FindOneAndUpdate(c.Request.Context(), bson.M{"supported_cred_id": supportedCredID}, bson.M{"$set": rec}, opts).Decode(&savedRecord)
+
+	c.JSON(http.StatusOK, gin.H{
+		"success":           true,
+		"supported_cred_id": supportedCredID,
+		"record":            savedRecord,
+		"acapyResponse":     acapyRecord,
+	})
+}
+
+func handleCreateJwtSupported(c *gin.Context) {
+	client, _, err := getAcapyClient(c.Request.Context(), nil)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	var payload map[string]interface{}
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if payload["format"] == nil || payload["format"] == "" {
+		payload["format"] = "jwt_vc_json"
+	}
+
+	resBytes, statusCode, err := client.DoRequest(c.Request.Context(), "POST", "/oid4vci/credential-supported/create/jwt", payload, nil)
+	if err != nil || statusCode >= 400 {
+		c.JSON(statusCode, gin.H{"error": formatErrorMsg(err, resBytes)})
+		return
+	}
+
+	var acapyRecord map[string]interface{}
+	_ = json.Unmarshal(resBytes, &acapyRecord)
+
+	supportedCredID, _ := acapyRecord["supported_cred_id"].(string)
+	if supportedCredID == "" {
+		supportedCredID, _ = acapyRecord["identifier"].(string)
+	}
+	if supportedCredID == "" {
+		supportedCredID, _ = payload["id"].(string)
+	}
+
+	identifier, _ := acapyRecord["identifier"].(string)
+	if identifier == "" {
+		identifier, _ = payload["id"].(string)
+	}
+	vct, _ := acapyRecord["vct"].(string)
+	if vct == "" {
+		if credDef, ok := payload["credential_definition"].(map[string]interface{}); ok {
+			if typesArr, ok := credDef["type"].([]interface{}); ok && len(typesArr) > 0 {
+				vct, _ = typesArr[len(typesArr)-1].(string)
+			}
+		}
+	}
+	format, _ := acapyRecord["format"].(string)
+	if format == "" {
+		format, _ = payload["format"].(string)
+	}
+	if format == "" {
+		format = "jwt_vc_json"
+	}
+
+	sdList := parseStringArray(payload["sd_list"])
+	cryptoMethods := parseStringArray(payload["cryptographic_binding_methods_supported"])
+	if len(cryptoMethods) == 0 {
+		cryptoMethods = []string{"did"}
+	}
+	signingAlgs := parseStringArray(payload["credential_signing_alg_values_supported"])
+	if len(signingAlgs) == 0 {
+		signingAlgs = []string{"ES256K"}
+	}
+
+	metadata, _ := payload["credential_metadata"].(map[string]interface{})
+	if metadata == nil {
+		metadata, _ = acapyRecord["credential_metadata"].(map[string]interface{})
+	}
+	if metadata == nil {
+		metadata = map[string]interface{}{}
+	}
+
+	rec := SupportedCredential{
+		SupportedCredID:                      supportedCredID,
+		Identifier:                           identifier,
+		VCT:                                  vct,
+		Format:                               format,
+		SDList:                               sdList,
+		CryptographicBindingMethodsSupported: cryptoMethods,
+		CredentialSigningAlgValuesSupported:  signingAlgs,
+		CredentialMetadata:                   metadata,
+		RawRecord:                            acapyRecord,
+		UpdatedAt:                            time.Now(),
+		CreatedAt:                            time.Now(),
+	}
+
+	coll := db.Collection("supported_credentials")
+	opts := options.FindOneAndUpdate().SetUpsert(true).SetReturnDocument(options.After)
+	var savedRecord SupportedCredential
+	_ = coll.FindOneAndUpdate(c.Request.Context(), bson.M{"supported_cred_id": supportedCredID}, bson.M{"$set": rec}, opts).Decode(&savedRecord)
+
+	c.JSON(http.StatusOK, gin.H{
+		"success":           true,
+		"supported_cred_id": supportedCredID,
+		"record":            savedRecord,
+		"acapyResponse":     acapyRecord,
+	})
+}
+
+func handleCreateMsoMdocSupported(c *gin.Context) {
+	client, _, err := getAcapyClient(c.Request.Context(), nil)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	var payload map[string]interface{}
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if payload["format"] == nil || payload["format"] == "" {
+		payload["format"] = "mso_mdoc"
+	}
+
+	resBytes, statusCode, err := client.DoRequest(c.Request.Context(), "POST", "/oid4vci/credential-supported/create/mso-mdoc", payload, nil)
+	if err != nil || statusCode >= 400 {
+		c.JSON(statusCode, gin.H{"error": formatErrorMsg(err, resBytes)})
+		return
+	}
+
+	var acapyRecord map[string]interface{}
+	_ = json.Unmarshal(resBytes, &acapyRecord)
+
+	supportedCredID, _ := acapyRecord["supported_cred_id"].(string)
+	if supportedCredID == "" {
+		supportedCredID, _ = acapyRecord["identifier"].(string)
+	}
+	if supportedCredID == "" {
+		supportedCredID, _ = payload["id"].(string)
+	}
+
+	identifier, _ := acapyRecord["identifier"].(string)
+	if identifier == "" {
+		identifier, _ = payload["id"].(string)
+	}
+	vct, _ := acapyRecord["vct"].(string)
+	if vct == "" {
+		vct, _ = payload["doctype"].(string)
+	}
+	format, _ := acapyRecord["format"].(string)
+	if format == "" {
+		format, _ = payload["format"].(string)
+	}
+	if format == "" {
+		format = "mso_mdoc"
+	}
+
+	sdList := parseStringArray(payload["sd_list"])
+	cryptoMethods := parseStringArray(payload["cryptographic_binding_methods_supported"])
+	if len(cryptoMethods) == 0 {
+		cryptoMethods = []string{"cose_key"}
+	}
+	signingAlgs := parseStringArray(payload["credential_signing_alg_values_supported"])
+	if len(signingAlgs) == 0 {
+		signingAlgs = []string{"-7"}
 	}
 
 	metadata, _ := payload["credential_metadata"].(map[string]interface{})

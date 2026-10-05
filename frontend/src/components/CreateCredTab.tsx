@@ -5,7 +5,6 @@ import axios from 'axios';
 export default function CreateCredTab({ onCredCreated }) {
   const [credId, setCredId] = useState('IdentityCardCredential');
   const [vct, setVct] = useState('https://example.com/identity-card');
-  const [format, setFormat] = useState('vc+sd-jwt');
   const [signingAlg, setSigningAlg] = useState('ES256K');
   const [bindingMethod, setBindingMethod] = useState('jwk');
   const [proofSigningAlgs, setProofSigningAlgs] = useState('ES256, ES256K');
@@ -141,7 +140,7 @@ export default function CreateCredTab({ onCredCreated }) {
     return {
       id: credId,
       vct: vct,
-      format: format,
+      format: 'vc+sd-jwt',
       cryptographic_binding_methods_supported: [bindingMethod],
       credential_signing_alg_values_supported: [signingAlg],
       proof_types_supported: {
@@ -225,14 +224,6 @@ export default function CreateCredTab({ onCredCreated }) {
                 placeholder="e.g. https://example.com/id-card"
                 required
               />
-            </div>
-
-            <div className="form-group">
-              <label>Format</label>
-              <select value={format} onChange={(e) => setFormat(e.target.value)}>
-                <option value="vc+sd-jwt">vc+sd-jwt</option>
-                <option value="jwt_vc_json">jwt_vc_json</option>
-              </select>
             </div>
 
             <div className="form-group">
