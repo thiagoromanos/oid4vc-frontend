@@ -118,19 +118,14 @@ export default function ProofPresentationTab({ storedCreds = [] }) {
         vp_formats
       };
     } else if (format === 'jwt_vp' || format === 'jwt_vc' || format === 'jwt_vc_json') {
-      const fields = requestedFields.length > 0
-        ? requestedFields.map(f => {
-            const clean = cleanFieldName(f);
-            return {
-              name: clean,
-              path: [`$.vc.credentialSubject.${clean}`, `$.credentialSubject.${clean}`],
-              filter: { type: "string", pattern: "^.{1,64}$" }
-            };
-          })
-        : [
-            { name: "name", path: ["$.vc.credentialSubject.first_name", "$.credentialSubject.first_name"], filter: { type: "string", pattern: "^.{1,64}$" } },
-            { name: "lastname", path: ["$.vc.credentialSubject.last_name", "$.credentialSubject.last_name"], filter: { type: "string", pattern: "^.{1,64}$" } }
-          ];
+      const fields = requestedFields.map(f => {
+        const clean = cleanFieldName(f);
+        return {
+          name: clean,
+          path: [`$.vc.credentialSubject.${clean}`, `$.credentialSubject.${clean}`],
+          filter: { type: "string", pattern: "^.{1,64}$" }
+        };
+      });
 
       pres_def = {
         id: presDefId.trim() || 'pres_def_id',

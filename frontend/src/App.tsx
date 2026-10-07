@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Server, FileCode, FileText, FileCheck, Database, RefreshCw, History, Key, ShieldCheck, Palette } from 'lucide-react';
+import { Shield, Server, Palette } from 'lucide-react';
 import axios from 'axios';
 
 import ConfigTab from './components/ConfigTab';
@@ -9,7 +9,6 @@ import CreateMsoMdocTab from './components/CreateMsoMdocTab';
 import StoredCredsTab from './components/StoredCredsTab';
 import DidManagerTab from './components/DidManagerTab';
 import CreateExchangeTab from './components/CreateExchangeTab';
-import ExchangeHistoryTab from './components/ExchangeHistoryTab';
 import ProofPresentationTab from './components/ProofPresentationTab';
 
 import themeEmerald from './theme.css?inline';
@@ -162,71 +161,65 @@ export default function App() {
         </div>
       </header>
 
-      {/* Navigation Tabs */}
-      <nav className="nav-tabs">
+      {/* Navigation: button + grouped dropdowns side-by-side */}
+      <nav className="nav-dropdown-bar">
+
+        {/* Button: Endpoint & Auth */}
         <button
-          className={`tab-btn ${activeTab === 'config' ? 'active' : ''}`}
+          className={`nav-group-btn${activeTab === 'config' ? ' active' : ''}`}
           onClick={() => setActiveTab('config')}
         >
-          <Server className="w-4 h-4" /> Endpoint & Auth
+          ⚙️ Endpoint &amp; Auth
         </button>
 
-        <button
-          className={`tab-btn ${activeTab === 'create-cred' ? 'active' : ''}`}
-          onClick={() => setActiveTab('create-cred')}
-        >
-          <FileCode className="w-4 h-4" /> Create Supported SD-JWT
-        </button>
+        {/* Dropdown: Create Supported… */}
+        <div className="nav-dropdown-wrapper">
+          <select
+            className={`nav-dropdown${['create-cred', 'create-jwt-vc', 'create-mso-mdoc'].includes(activeTab) ? ' active' : ''}`}
+            value={['create-cred', 'create-jwt-vc', 'create-mso-mdoc'].includes(activeTab) ? activeTab : ''}
+            onChange={(e) => { if (e.target.value) setActiveTab(e.target.value); }}
+            aria-label="Create Supported Credential"
+          >
+            <option value="" disabled>📋 Create Supported…</option>
+            <option value="create-cred">🔏 SD-JWT</option>
+            <option value="create-jwt-vc">📄 JWT-VC</option>
+            <option value="create-mso-mdoc">✅ mso-mdoc</option>
+          </select>
+          <span className="nav-dropdown-caret" aria-hidden="true">▾</span>
+        </div>
 
-        <button
-          className={`tab-btn ${activeTab === 'create-jwt-vc' ? 'active' : ''}`}
-          onClick={() => setActiveTab('create-jwt-vc')}
-        >
-          <FileText className="w-4 h-4" /> Create Supported JWT-VC
-        </button>
+        {/* Dropdown: Credentials & DIDs */}
+        <div className="nav-dropdown-wrapper">
+          <select
+            className={`nav-dropdown${['stored-creds', 'dids'].includes(activeTab) ? ' active' : ''}`}
+            value={['stored-creds', 'dids'].includes(activeTab) ? activeTab : ''}
+            onChange={(e) => { if (e.target.value) setActiveTab(e.target.value); }}
+            aria-label="Credentials and DIDs"
+          >
+            <option value="" disabled>🗄️ Credentials &amp; DIDs…</option>
+            <option value="stored-creds">🗄️ Stored Credentials ({storedCreds.length})</option>
+            <option value="dids">🔑 DIDs ({didRecords.length})</option>
+          </select>
+          <span className="nav-dropdown-caret" aria-hidden="true">▾</span>
+        </div>
 
-        <button
-          className={`tab-btn ${activeTab === 'create-mso-mdoc' ? 'active' : ''}`}
-          onClick={() => setActiveTab('create-mso-mdoc')}
-        >
-          <FileCheck className="w-4 h-4" /> Create Supported mso-mdoc
-        </button>
+        {/* Dropdown: Exchange & Proof */}
+        <div className="nav-dropdown-wrapper">
+          <select
+            className={`nav-dropdown${['exchange', 'presentation'].includes(activeTab) ? ' active' : ''}`}
+            value={['exchange', 'presentation'].includes(activeTab) ? activeTab : ''}
+            onChange={(e) => { if (e.target.value) setActiveTab(e.target.value); }}
+            aria-label="Exchange and Presentation"
+          >
+            <option value="" disabled>🔄 Exchange &amp; Proof…</option>
+            <option value="exchange">🔄 Create Exchange &amp; QR</option>
+            <option value="presentation">🛡️ Proof Presentation</option>
+          </select>
+          <span className="nav-dropdown-caret" aria-hidden="true">▾</span>
+        </div>
 
-        <button
-          className={`tab-btn ${activeTab === 'stored-creds' ? 'active' : ''}`}
-          onClick={() => setActiveTab('stored-creds')}
-        >
-          <Database className="w-4 h-4" /> Stored Credentials ({storedCreds.length})
-        </button>
-
-        <button
-          className={`tab-btn ${activeTab === 'dids' ? 'active' : ''}`}
-          onClick={() => setActiveTab('dids')}
-        >
-          <Key className="w-4 h-4" /> DIDs ({didRecords.length})
-        </button>
-
-        <button
-          className={`tab-btn ${activeTab === 'exchange' ? 'active' : ''}`}
-          onClick={() => setActiveTab('exchange')}
-        >
-          <RefreshCw className="w-4 h-4" /> Create Exchange & QR
-        </button>
-
-        <button
-          className={`tab-btn ${activeTab === 'presentation' ? 'active' : ''}`}
-          onClick={() => setActiveTab('presentation')}
-        >
-          <ShieldCheck className="w-4 h-4" /> Proof Presentation
-        </button>
-
-        <button
-          className={`tab-btn ${activeTab === 'history' ? 'active' : ''}`}
-          onClick={() => setActiveTab('history')}
-        >
-          <History className="w-4 h-4" /> Exchange History
-        </button>
       </nav>
+
 
       {/* Main Tab Content */}
       <main>
@@ -275,8 +268,6 @@ export default function App() {
         {activeTab === 'presentation' && (
           <ProofPresentationTab storedCreds={storedCreds} />
         )}
-
-        {activeTab === 'history' && <ExchangeHistoryTab />}
       </main>
     </div>
   );
