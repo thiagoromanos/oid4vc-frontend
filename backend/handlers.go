@@ -184,6 +184,10 @@ func handleCreateTenant(c *gin.Context) {
 	if val, ok := reqBody["wallet_type"].(string); ok && val != "" {
 		walletType = val
 	}
+	walletWebhook := []string{}
+	if val, ok := reqBody["wallet_webhook"].(string); ok && val != "" {
+		walletWebhook = append(walletWebhook, val)
+	}
 
 	// ── STEP 1: Create Wallet / Tenant ──
 	logEntry("Step 1: Creating ACA-Py subwallet via POST /multitenancy/wallet", nil)
@@ -193,6 +197,7 @@ func handleCreateTenant(c *gin.Context) {
 		"label":               label,
 		"wallet_type":         walletType,
 		"key_management_mode": "managed",
+		"wallet_webhook_urls": walletWebhook,
 	}
 
 	resBytes, statusCode, err := acapyClient.DoRequest(c.Request.Context(), "POST", "/multitenancy/wallet", walletReqBody, nil)

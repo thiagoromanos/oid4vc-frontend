@@ -102,8 +102,8 @@ export default function CreateMsoMdocTab({ onCredCreated }: CreateMsoMdocTabProp
   // Customizable credential_metadata.display entries
   const [displays, setDisplays] = useState([
     {
-      name: 'Mobile Driving License (mDL)',
-      locale: 'en-US',
+      name: 'Carteira Digital de Habilitação (mDL)',
+      locale: 'pt-BR',
       background_color: '#12107c',
       text_color: '#ffffff',
       logoUri: '',
@@ -112,8 +112,8 @@ export default function CreateMsoMdocTab({ onCredCreated }: CreateMsoMdocTabProp
       backgroundImageAltText: ''
     },
     {
-      name: 'Carteira Digital de Habilitação (mDL)',
-      locale: 'pt-BR',
+      name: 'Mobile Driving License (mDL)',
+      locale: 'en-US',
       background_color: '#12107c',
       text_color: '#ffffff',
       logoUri: '',
@@ -594,22 +594,22 @@ export default function CreateMsoMdocTab({ onCredCreated }: CreateMsoMdocTabProp
                 </div>
 
                 <div className="form-group" style={{ margin: 0 }}>
-                  <label style={{ fontSize: '0.75rem' }}>Label (en-US)</label>
-                  <input
-                    type="text"
-                    value={attr.labelEn}
-                    onChange={(e) => updateAttribute(index, 'labelEn', e.target.value)}
-                    placeholder="Given Name"
-                  />
-                </div>
-
-                <div className="form-group" style={{ margin: 0 }}>
                   <label style={{ fontSize: '0.75rem' }}>Label (pt-BR)</label>
                   <input
                     type="text"
                     value={attr.labelPt}
                     onChange={(e) => updateAttribute(index, 'labelPt', e.target.value)}
                     placeholder="Primeiro Nome"
+                  />
+                </div>
+
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label style={{ fontSize: '0.75rem' }}>Label (en-US)</label>
+                  <input
+                    type="text"
+                    value={attr.labelEn}
+                    onChange={(e) => updateAttribute(index, 'labelEn', e.target.value)}
+                    placeholder="Given Name"
                   />
                 </div>
 

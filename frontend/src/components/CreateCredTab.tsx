@@ -12,8 +12,8 @@ export default function CreateCredTab({ onCredCreated }) {
   // Fully customizable credential_metadata.display entries
   const [displays, setDisplays] = useState([
     {
-      name: 'National Identity Card',
-      locale: 'en-US',
+      name: 'Carteira de Identidade Nacional',
+      locale: 'pt-BR',
       background_color: '#1e293b',
       text_color: '#ffffff',
       logoUri: '',
@@ -22,8 +22,8 @@ export default function CreateCredTab({ onCredCreated }) {
       backgroundImageAltText: ''
     },
     {
-      name: 'Carteira de Identidade Nacional',
-      locale: 'pt-BR',
+      name: 'National Identity Card',
+      locale: 'en-US',
       background_color: '#1e293b',
       text_color: '#ffffff',
       logoUri: '',
@@ -35,11 +35,11 @@ export default function CreateCredTab({ onCredCreated }) {
 
   // Dynamic attributes list
   const [attributes, setAttributes] = useState([
-    { name: 'given_name', labelEn: 'Given Name', labelPt: 'Primeiro Nome', isSd: true },
-    { name: 'family_name', labelEn: 'Surname / Family Name', labelPt: 'Sobrenome', isSd: true },
+    { name: 'given_name', labelEn: 'Given Name', labelPt: 'Primeiro Nome', isSd: false },
+    { name: 'family_name', labelEn: 'Surname / Family Name', labelPt: 'Sobrenome', isSd: false },
     { name: 'email', labelEn: 'Email Address', labelPt: 'Endereço de E-mail', isSd: true },
     { name: 'birthdate', labelEn: 'Date of Birth', labelPt: 'Data de Nascimento', isSd: true },
-    { name: 'national_id', labelEn: 'National ID Number', labelPt: 'Número de CPF / RG', isSd: false }
+    { name: 'national_id', labelEn: 'National ID Number', labelPt: 'Número de CPF / RG', isSd: true }
   ]);
 
   const [submitting, setSubmitting] = useState(false);
@@ -444,22 +444,22 @@ export default function CreateCredTab({ onCredCreated }) {
                 </div>
 
                 <div className="form-group" style={{ margin: 0 }}>
-                  <label style={{ fontSize: '0.75rem' }}>Label (en-US)</label>
-                  <input
-                    type="text"
-                    value={attr.labelEn}
-                    onChange={(e) => updateAttribute(index, 'labelEn', e.target.value)}
-                    placeholder="Given Name"
-                  />
-                </div>
-
-                <div className="form-group" style={{ margin: 0 }}>
                   <label style={{ fontSize: '0.75rem' }}>Label (pt-BR)</label>
                   <input
                     type="text"
                     value={attr.labelPt}
                     onChange={(e) => updateAttribute(index, 'labelPt', e.target.value)}
                     placeholder="Primeiro Nome"
+                  />
+                </div>
+
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label style={{ fontSize: '0.75rem' }}>Label (en-US)</label>
+                  <input
+                    type="text"
+                    value={attr.labelEn}
+                    onChange={(e) => updateAttribute(index, 'labelEn', e.target.value)}
+                    placeholder="Given Name"
                   />
                 </div>
 

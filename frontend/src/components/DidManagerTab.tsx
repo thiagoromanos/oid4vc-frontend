@@ -190,7 +190,7 @@ export default function DidManagerTab({ didRecords, fetchDidRecords, onSelectDid
                       {d.method ? `did:${d.method}` : 'did'} ({d.posture || 'wallet_only'})
                     </span>
                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                      {new Date(d.createdAt || Date.now()).toLocaleDateString()}
+                      {new Date(d.createdAt || Date.now()).toLocaleString()}
                     </span>
                   </div>
 

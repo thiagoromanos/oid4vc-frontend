@@ -12,6 +12,7 @@ export default function ConfigTab({ config, fetchConfig }) {
   const [authServerPublicUrl, setAuthServerPublicUrl] = useState(config.authServerPublicUrl || '');
   const [authServerPrivateUrl, setAuthServerPrivateUrl] = useState(config.authServerPrivateUrl || '');
   const [tenantSecret, setTenantSecret] = useState(config.tenantSecret || '');
+  const [walletWebhook, setWalletWebhook] = useState(config.walletWebhook || '');
   const [savingConfig, setSavingConfig] = useState(false);
   const [configMessage, setConfigMessage] = useState(null);
 
@@ -60,6 +61,7 @@ export default function ConfigTab({ config, fetchConfig }) {
         wallet_type: walletType,
         acapyUrl: acapyUrl,
         adminApiKey: adminApiKey,
+        wallet_webhook: walletWebhook,
         // Pass auth-server params so backend can run the full setup sequence
         authServerUrl,
         authServerAdminToken,
@@ -249,6 +251,17 @@ export default function ConfigTab({ config, fetchConfig }) {
                 onChange={(e) => setWalletLabel(e.target.value)}
                 required
               />
+            </div>
+
+            <div className="form-group">
+              <label>Webhook URL</label>
+              <input
+                type="text"
+                value={walletWebhook}
+                onChange={(e) => setWalletWebhook(e.target.value)}
+                placeholder="http://your-webhook-url.com"
+              />
+              <span className="label-hint">Webhook URL for receiving notifications</span>
             </div>
 
             <div className="form-group">

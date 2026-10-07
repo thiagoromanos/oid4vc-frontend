@@ -61,12 +61,12 @@ export default function StoredCredsTab({ storedCreds, fetchStoredCreds, onSelect
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
                       <span className="badge badge-green">{cred.format || 'vc+sd-jwt'}</span>
                       <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                        {new Date(cred.createdAt || Date.now()).toLocaleDateString()}
+                        {new Date(cred.createdAt || Date.now()).toLocaleString()}
                       </span>
                     </div>
 
                     <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>
-                      {cred.supported_cred_id}
+                      {cred.supported_cred_id} - cred
                     </h3>
 
                     <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '12px' }}>
