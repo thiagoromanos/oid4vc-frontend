@@ -13,7 +13,7 @@ services:
       - frontend-oid4vci-net
 
   backend:
-    image: ghcr.io/thiagoromanos/oid4vc-backend:v0.0.1
+    image: ghcr.io/thiagoromanos/romano-oid4vc-backend:v0.0.1
     build:
       context: .
       dockerfile: backend/Dockerfile
@@ -47,7 +47,7 @@ services:
       - frontend-oid4vci-net
 
   frontend:
-    image: ghcr.io/thiagoromanos/oid4vc-frontend-ui:v0.0.1
+    image: ghcr.io/thiagoromanos/romano-oid4vc-frontend-ui:v0.0.1
     build:
       context: .
       dockerfile: frontend/Dockerfile
