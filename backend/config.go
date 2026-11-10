@@ -63,6 +63,7 @@ type ExchangeRecord struct {
 	SupportedCredID   string                 `bson:"supported_cred_id" json:"supported_cred_id"`
 	CredentialSubject map[string]interface{} `bson:"credential_subject" json:"credential_subject"`
 	CredentialOffer   string                 `bson:"credential_offer" json:"credential_offer"`
+	RequestPayload    map[string]interface{} `bson:"request_payload,omitempty" json:"request_payload,omitempty"`
 	OfferData         interface{}            `bson:"offer_data" json:"offer_data"`
 	RawRecord         interface{}            `bson:"raw_record,omitempty" json:"raw_record,omitempty"`
 	CreatedAt         time.Time              `bson:"createdAt" json:"createdAt"`
@@ -90,6 +91,20 @@ type PresentationDef struct {
 	PresDef   map[string]interface{} `bson:"pres_def" json:"pres_def"`
 	RawRecord interface{}            `bson:"raw_record,omitempty" json:"raw_record,omitempty"`
 	CreatedAt time.Time              `bson:"createdAt" json:"createdAt"`
+}
+
+// PresentationRecord stores OID4VP requests and their latest verification result.
+type PresentationRecord struct {
+	ID             primitive.ObjectID `bson:"_id,omitempty" json:"_id,omitempty"`
+	PresentationID string             `bson:"presentation_id" json:"presentation_id"`
+	PresDefID      string             `bson:"pres_def_id,omitempty" json:"pres_def_id,omitempty"`
+	DCQLQueryID    string             `bson:"dcql_query_id,omitempty" json:"dcql_query_id,omitempty"`
+	RequestURI     string             `bson:"request_uri,omitempty" json:"request_uri,omitempty"`
+	Status         string             `bson:"status,omitempty" json:"status,omitempty"`
+	VerifiedClaims interface{}        `bson:"verified_claims,omitempty" json:"verified_claims,omitempty"`
+	RawRecord      interface{}        `bson:"raw_record,omitempty" json:"raw_record,omitempty"`
+	CreatedAt      time.Time          `bson:"createdAt" json:"createdAt"`
+	UpdatedAt      time.Time          `bson:"updatedAt" json:"updatedAt"`
 }
 
 func getEnv(key, fallback string) string {

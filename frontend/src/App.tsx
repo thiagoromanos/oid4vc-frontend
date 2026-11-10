@@ -211,8 +211,8 @@ export default function App() {
             onChange={(e) => { if (e.target.value) setActiveTab(e.target.value); }}
             aria-label="Exchange and Presentation"
           >
-            <option value="" disabled>🔄 Exchange &amp; Proof…</option>
-            <option value="exchange">🔄 Create Exchange &amp; QR</option>
+            <option value="" disabled>🔄 Issuance &amp; Proof</option>
+            <option value="exchange">🔄 Credential Issuance</option>
             <option value="presentation">🛡️ Proof Presentation</option>
           </select>
           <span className="nav-dropdown-caret" aria-hidden="true">▾</span>

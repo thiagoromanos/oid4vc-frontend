@@ -547,7 +547,7 @@ func handleCreateDid(c *gin.Context) {
 			return
 		}
 		payload = map[string]interface{}{
-			"key_type": keyType,
+			"key_type": "p256",
 		}
 
 		logEntry("Keytype com jwk: ", keyType)
@@ -1169,7 +1169,11 @@ func handleCreateExchange(c *gin.Context) {
 		payload["verification_method"] = vm
 	} else {
 		if did, ok := reqBody["did"].(string); ok && did != "" {
-			payload["diverification_methodd"] = did + "#0"
+			verificationMethodID := "0"
+			if strings.HasPrefix(did, "did:key:") {
+				verificationMethodID = strings.TrimPrefix(did, "did:key:")
+			}
+			payload["verification_method"] = did + "#" + verificationMethodID
 		}
 	}
 
@@ -1205,6 +1209,7 @@ func handleCreateExchange(c *gin.Context) {
 		SupportedCredID:   supportedCredID,
 		CredentialSubject: credSubject,
 		CredentialOffer:   credentialOffer,
+		RequestPayload:    payload,
 		OfferData:         offerData,
 		RawRecord:         exchangeRecord,
 		CreatedAt:         time.Now(),
@@ -1421,6 +1426,22 @@ func handleCreatePresentationReq(c *gin.Context) {
 		"request_uri":     requestURI,
 		"data":            data,
 	})
+	now := time.Now()
+	record := PresentationRecord{
+		PresentationID: presentationID,
+		PresDefID:      presDefID,
+		DCQLQueryID:    dcqlQueryID,
+		RequestURI:     requestURI,
+		RawRecord:      data,
+		CreatedAt:      now,
+		UpdatedAt:      now,
+	}
+	opts := options.FindOneAndUpdate().SetUpsert(true).SetReturnDocument(options.After)
+	var saved PresentationRecord
+	if err := db.Collection("presentation_records").FindOneAndUpdate(c.Request.Context(), bson.M{"presentation_id": presentationID}, bson.M{"$set": record}, opts).Decode(&saved); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "presentation request created but could not be saved: " + err.Error()})
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"success":         true,
@@ -1456,19 +1477,108 @@ func handleGetPresentationRecordByID(c *gin.Context) {
 	presentationID := c.Param("presentation_id")
 	client, _, err := getAcapyClient(c.Request.Context(), nil)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		returnCachedPresentation(c, presentationID, err.Error())
 		return
 	}
 
 	resBytes, statusCode, err := client.DoRequest(c.Request.Context(), "GET", fmt.Sprintf("/oid4vp/presentation/%s", presentationID), nil, nil)
 	if err != nil || statusCode >= 400 {
-		c.JSON(statusCode, gin.H{"error": formatErrorMsg(err, resBytes)})
+		returnCachedPresentation(c, presentationID, formatErrorMsg(err, resBytes))
 		return
 	}
 
-	var respData interface{}
+	var respData map[string]interface{}
 	_ = json.Unmarshal(resBytes, &respData)
+	if respData == nil {
+		respData = map[string]interface{}{}
+	}
+	record := PresentationRecord{PresentationID: presentationID, RawRecord: respData, UpdatedAt: time.Now()}
+	if status, ok := respData["status"].(string); ok {
+		record.Status = status
+	} else if state, ok := respData["state"].(string); ok {
+		record.Status = state
+	}
+	if claims := respData["verified_claims"]; claims != nil {
+		record.VerifiedClaims = claims
+	} else if claims := respData["matched_credentials"]; claims != nil {
+		record.VerifiedClaims = claims
+	}
+	var existing PresentationRecord
+	coll := db.Collection("presentation_records")
+	_ = coll.FindOne(c.Request.Context(), bson.M{"presentation_id": presentationID}).Decode(&existing)
+	if existing.CreatedAt.IsZero() {
+		record.CreatedAt = time.Now()
+	} else {
+		record.CreatedAt = existing.CreatedAt
+		record.PresDefID = existing.PresDefID
+		record.DCQLQueryID = existing.DCQLQueryID
+		record.RequestURI = existing.RequestURI
+		if record.VerifiedClaims == nil {
+			record.VerifiedClaims = existing.VerifiedClaims
+		}
+	}
+	opts := options.FindOneAndUpdate().SetUpsert(true).SetReturnDocument(options.After)
+	var saved PresentationRecord
+	if err := coll.FindOneAndUpdate(c.Request.Context(), bson.M{"presentation_id": presentationID}, bson.M{"$set": record}, opts).Decode(&saved); err == nil {
+		c.JSON(http.StatusOK, presentationRecordResponse(saved))
+		return
+	}
 	c.JSON(http.StatusOK, respData)
+}
+
+func handleGetPresentationRecords(c *gin.Context) {
+	cursor, err := db.Collection("presentation_records").Find(c.Request.Context(), bson.M{}, options.Find().SetSort(bson.D{{Key: "createdAt", Value: -1}}))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	defer cursor.Close(c.Request.Context())
+	records := make([]PresentationRecord, 0)
+	if err := cursor.All(c.Request.Context(), &records); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	responses := make([]gin.H, 0, len(records))
+	for _, record := range records {
+		responses = append(responses, presentationRecordResponse(record))
+	}
+	c.JSON(http.StatusOK, responses)
+}
+
+func presentationRecordResponse(record PresentationRecord) gin.H {
+	response := gin.H{"presentation_id": record.PresentationID, "status": record.Status, "createdAt": record.CreatedAt, "updatedAt": record.UpdatedAt}
+	if record.VerifiedClaims != nil {
+		response["verified_claims"] = record.VerifiedClaims
+	}
+	if record.RawRecord != nil {
+		response["raw_record"] = record.RawRecord
+	}
+	if record.PresDefID != "" {
+		response["pres_def_id"] = record.PresDefID
+	}
+	if record.DCQLQueryID != "" {
+		response["dcql_query_id"] = record.DCQLQueryID
+	}
+	if record.RequestURI != "" {
+		response["request_uri"] = record.RequestURI
+	}
+	if raw, ok := record.RawRecord.(map[string]interface{}); ok {
+		for key, value := range raw {
+			response[key] = value
+		}
+	} else if record.RawRecord != nil {
+		response["raw_record"] = record.RawRecord
+	}
+	return response
+}
+
+func returnCachedPresentation(c *gin.Context, presentationID, reason string) {
+	var record PresentationRecord
+	if err := db.Collection("presentation_records").FindOne(c.Request.Context(), bson.M{"presentation_id": presentationID}).Decode(&record); err == nil {
+		c.JSON(http.StatusOK, presentationRecordResponse(record))
+		return
+	}
+	c.JSON(http.StatusBadGateway, gin.H{"error": reason})
 }
 
 func handleDeletePresentationRecord(c *gin.Context) {
@@ -1477,6 +1587,7 @@ func handleDeletePresentationRecord(c *gin.Context) {
 	if err == nil {
 		_, _, _ = client.DoRequest(c.Request.Context(), "DELETE", fmt.Sprintf("/oid4vp/presentation/%s", presentationID), nil, nil)
 	}
+	_, _ = db.Collection("presentation_records").DeleteOne(c.Request.Context(), bson.M{"presentation_id": presentationID})
 
 	c.JSON(http.StatusOK, gin.H{
 		"success":         true,

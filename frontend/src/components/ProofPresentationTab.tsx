@@ -42,6 +42,7 @@ export default function ProofPresentationTab({ storedCreds = [] }) {
   // History State
   const [historyRecords, setHistoryRecords] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [selectedHistoryRecord, setSelectedHistoryRecord] = useState(null);
 
   // Ref to track current presentation id for polling without re-creating intervals
   const presentationIdRef = useRef(null);
@@ -376,7 +377,7 @@ export default function ProofPresentationTab({ storedCreds = [] }) {
   // Helper to extract claims from record
   const getReceivedClaims = (rec) => {
     if (!rec) return {};
-    const rawClaims = rec.verified_claims || rec.matched_credentials || {};
+    const rawClaims = rec.verified_claims || rec.matched_credentials || rec.raw_record?.verified_claims || rec.raw_record?.matched_credentials || {};
     if (typeof rawClaims !== 'object' || rawClaims === null) return {};
 
     // If claims are nested inside input descriptor keys (e.g. { "ID Card": { ...claims } })
@@ -782,6 +783,21 @@ export default function ProofPresentationTab({ storedCreds = [] }) {
                 </div>
               )}
 
+              {currentStatus === 'presentation-invalid' && (
+                <div style={{ marginTop: '16px' }}>
+                  <h4 style={{ color: 'var(--accent-danger)', margin: '0 0 10px' }}>Presentation status</h4>
+                  {renderStatusBadge(currentStatus, false)}
+                  {hasClaims && (
+                    <table className="claims-table" style={{ marginTop: '12px' }}>
+                      <thead><tr><th>Claim / Attribute</th><th>Presented Value</th></tr></thead>
+                      <tbody>{Object.entries(receivedClaims).map(([key, val]) => (
+                        <tr key={key}><td><code>{key}</code></td><td>{typeof val === 'object' && val !== null ? <pre style={{ margin: 0 }}>{JSON.stringify(val, null, 2)}</pre> : String(val)}</td></tr>
+                      ))}</tbody>
+                    </table>
+                  )}
+                </div>
+              )}
+
               {/* Errors section if presentation invalid */}
               {(currentStatus === 'presentation-invalid' || (currentRecord?.errors && currentRecord.errors.length > 0)) && (
                 <div
@@ -903,15 +919,7 @@ export default function ProofPresentationTab({ storedCreds = [] }) {
                             type="button"
                             className="btn btn-secondary"
                             style={{ padding: '4px 8px', fontSize: '0.75rem', marginRight: '6px' }}
-                            onClick={() => {
-                              presentationIdRef.current = item.presentation_id;
-                              setPresentationResult({
-                                presentation_id: item.presentation_id,
-                                request_uri: item.request_uri,
-                                presentationRecord: item
-                              });
-                              setActiveSubTab('request');
-                            }}
+                            onClick={() => setSelectedHistoryRecord(item)}
                           >
                             <QrCode className="w-3.5 h-3.5" /> View Details
                           </button>
@@ -931,6 +939,27 @@ export default function ProofPresentationTab({ storedCreds = [] }) {
               </table>
             </div>
           )}
+        </div>
+      )}
+
+      {selectedHistoryRecord && (
+        <div role="presentation" onClick={(event) => { if (event.target === event.currentTarget) setSelectedHistoryRecord(null); }} style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', background: 'rgba(0, 0, 0, 0.68)' }}>
+          <div role="dialog" aria-modal="true" aria-labelledby="presentation-modal-title" className="card" style={{ width: 'min(100%, 960px)', maxHeight: '90vh', overflowY: 'auto', borderColor: 'var(--border-focus)', boxShadow: '0 24px 80px rgba(0,0,0,.45)' }}>
+            <div className="card-title" style={{ justifyContent: 'space-between', gap: '16px' }}>
+              <span id="presentation-modal-title">Presentation details</span>
+              <button type="button" className="btn btn-secondary btn-sm" onClick={() => setSelectedHistoryRecord(null)}>Close</button>
+            </div>
+            <p style={{ marginTop: '16px', overflowWrap: 'anywhere' }}>Presentation ID: <code>{selectedHistoryRecord.presentation_id}</code></p>
+            <p>Status: {renderStatusBadge(selectedHistoryRecord.status, selectedHistoryRecord.verified)}</p>
+            <h4>Presented claims</h4>
+            {Object.keys(getReceivedClaims(selectedHistoryRecord)).length ? (
+              <table className="claims-table"><thead><tr><th>Claim / Attribute</th><th>Presented Value</th></tr></thead><tbody>
+                {Object.entries(getReceivedClaims(selectedHistoryRecord)).map(([key, val]) => <tr key={key}><td><code>{key}</code></td><td>{typeof val === 'object' && val !== null ? <pre style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{JSON.stringify(val, null, 2)}</pre> : String(val)}</td></tr>)}
+              </tbody></table>
+            ) : <p style={{ color: 'var(--text-muted)' }}>No claims received.</p>}
+            <h4 style={{ marginTop: '20px' }}>Raw presentation response</h4>
+            <pre style={{ maxHeight: '360px', overflow: 'auto', whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{JSON.stringify(selectedHistoryRecord.raw_record || selectedHistoryRecord, null, 2)}</pre>
+          </div>
         </div>
       )}
     </div>

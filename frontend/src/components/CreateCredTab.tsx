@@ -36,9 +36,9 @@ export default function CreateCredTab({ onCredCreated }) {
   // Dynamic attributes list
   const [attributes, setAttributes] = useState([
     { name: 'given_name', labelEn: 'Given Name', labelPt: 'Primeiro Nome', isSd: false },
-    { name: 'family_name', labelEn: 'Surname / Family Name', labelPt: 'Sobrenome', isSd: false },
-    { name: 'email', labelEn: 'Email Address', labelPt: 'Endereço de E-mail', isSd: true },
-    { name: 'birthdate', labelEn: 'Date of Birth', labelPt: 'Data de Nascimento', isSd: true },
+    // { name: 'family_name', labelEn: 'Surname / Family Name', labelPt: 'Sobrenome', isSd: false },
+    // { name: 'email', labelEn: 'Email Address', labelPt: 'Endereço de E-mail', isSd: true },
+    // { name: 'birthdate', labelEn: 'Date of Birth', labelPt: 'Data de Nascimento', isSd: true },
     { name: 'national_id', labelEn: 'National ID Number', labelPt: 'Número de CPF / RG', isSd: true }
   ]);
 

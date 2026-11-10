@@ -74,9 +74,9 @@ export default function ExchangeHistoryTab() {
                   </p>
 
                   <div className="sub-card">
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Subject Data:</span>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Payload sent to POST /oid4vci/exchange/create:</span>
                     <pre style={{ fontSize: '0.75rem', padding: '6px' }}>
-                      {JSON.stringify(ex.credential_subject, null, 2)}
+                      {JSON.stringify(ex.request_payload || { supported_cred_id: ex.supported_cred_id, credential_subject: ex.credential_subject }, null, 2)}
                     </pre>
                   </div>
                 </div>

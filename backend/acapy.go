@@ -70,7 +70,7 @@ func (c *AcapyClient) DoRequest(ctx context.Context, method, path string, body i
 		req.Header.Set("Authorization", "Bearer "+c.BearerToken)
 	}
 	if c.AdminAPIKey != "" {
-		req.Header.Set("X-API-Key", c.AdminAPIKey)
+		req.Header.Set("apikey", c.AdminAPIKey)
 	}
 
 	for k, v := range headers {

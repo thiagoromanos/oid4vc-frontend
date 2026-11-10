@@ -71,6 +71,7 @@ func main() {
 		api.POST("/dcql-query/create", handleCreateDcqlQuery)
 		api.POST("/presentation-definition/create", handleCreatePresentationDef)
 		api.POST("/presentation-request/create", handleCreatePresentationReq)
+		api.GET("/presentation/records", handleGetPresentationRecords)
 		api.GET("/presentation/records/:presentation_id", handleGetPresentationRecordByID)
 		api.DELETE("/presentation/records/:presentation_id", handleDeletePresentationRecord)
 	}

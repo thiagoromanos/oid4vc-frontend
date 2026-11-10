@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { RefreshCw, QrCode, Sparkles, CheckCircle, ShieldAlert, Copy, ExternalLink, Info, Code, History, Clock } from 'lucide-react';
+import { RefreshCw, QrCode, Sparkles, CheckCircle, ShieldAlert, Copy, ExternalLink, Info, Code, History, Clock, ChevronDown, X } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import axios from 'axios';
 
@@ -14,6 +14,8 @@ export default function CreateExchangeTab({ selectedCredId, storedCreds, selecte
 
   const [userPin, setUserPin] = useState('');
   const [did, setDid] = useState(selectedDid || '');
+  const [showDidModal, setShowDidModal] = useState(false);
+  const [customDidInput, setCustomDidInput] = useState('');
 
   const [creatingExchange, setCreatingExchange] = useState(false);
   const [exchangeResult, setExchangeResult] = useState(null);
@@ -59,8 +61,12 @@ export default function CreateExchangeTab({ selectedCredId, storedCreds, selecte
     };
     if (userPin.trim()) payload.pin = userPin.trim();
     if (did.trim()) {
-       payload.did = did.trim();
-       payload.verification_method = `${did.trim()}#0`;
+       const issuerDid = did.trim();
+       payload.did = issuerDid;
+       const verificationMethodId = issuerDid.startsWith('did:key:')
+         ? issuerDid.slice('did:key:'.length)
+         : '0';
+       payload.verification_method = `${issuerDid}#${verificationMethodId}`;
     }
 
     return payload;
@@ -299,35 +305,54 @@ export default function CreateExchangeTab({ selectedCredId, storedCreds, selecte
 
                   <div className="form-group">
                     <label>Holder / Issuance DID <span className="label-hint">Optional (Select stored DID or enter custom)</span></label>
-                    {didRecords.length > 0 ? (
-                      <div className="input-with-button">
-                        <select
-                          value={did}
-                          onChange={(e) => setDid(e.target.value)}
-                          style={{ flex: 1 }}
-                        >
-                          <option value="">-- Custom or None --</option>
-                          {didRecords.map((d: any) => (
-                            <option key={d.did} value={d.did}>
-                              {d.did} ({d.method})
-                            </option>
-                          ))}
-                        </select>
-                        <input
-                          type="text"
-                          value={did}
-                          onChange={(e) => setDid(e.target.value)}
-                          placeholder="did:key:... or did:peer:..."
-                          style={{ flex: 1 }}
-                        />
-                      </div>
-                    ) : (
-                      <input
-                        type="text"
-                        value={did}
-                        onChange={(e) => setDid(e.target.value)}
-                        placeholder="did:peer:... or did:key:..."
-                      />
+
+                    {/* Trigger button */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCustomDidInput(
+                          didRecords.some((d: any) => d.did === did) ? '' : did
+                        );
+                        setShowDidModal(true);
+                      }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '8px',
+                        width: '100%',
+                        textAlign: 'left',
+                        padding: '8px 12px',
+                        background: 'var(--bg-input)',
+                        border: '1px solid var(--border-color)',
+                        borderRadius: '6px',
+                        color: did ? 'var(--text-primary)' : 'var(--text-muted)',
+                        cursor: 'pointer',
+                        fontFamily: did ? 'monospace' : 'inherit',
+                        fontSize: '0.875rem',
+                        minWidth: 0,
+                      }}
+                    >
+                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+                        {did
+                          ? did.length > 60
+                            ? `${did.slice(0, 30)}…${did.slice(-20)}`
+                            : did
+                          : '-- None / Custom --'}
+                      </span>
+                      <ChevronDown className="w-4 h-4" style={{ flexShrink: 0, opacity: 0.6 }} />
+                    </button>
+
+                    {/* Clear button shown when a DID is selected */}
+                    {did && (
+                      <button
+                        type="button"
+                        className="btn btn-secondary btn-sm"
+                        style={{ marginTop: '6px' }}
+                        onClick={() => setDid('')}
+                      >
+                        <X className="w-3 h-3" /> Clear DID
+                      </button>
                     )}
                   </div>
                 </div>
@@ -476,100 +501,199 @@ export default function CreateExchangeTab({ selectedCredId, storedCreds, selecte
                 <span>No exchanges created yet. Go to &quot;Create Exchange &amp; QR&quot; to issue credentials.</span>
               </div>
             ) : (
-              <div className="form-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))' }}>
+              <div style={{ display: 'grid', gap: '10px' }}>
                 {exchanges.map((ex: any) => (
-                  <div key={ex._id || ex.exchange_id} className="cred-card">
-                    <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <button
+                    key={ex._id || ex.exchange_id}
+                    type="button"
+                    className="cred-card"
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', textAlign: 'left', cursor: 'pointer', width: '100%' }}
+                    onClick={() => setSelectedExchange(ex)}
+                  >
+                    <span style={{ minWidth: 0 }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
                         <span className="badge badge-green">Exchange</span>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                          {new Date(ex.createdAt).toLocaleString()}
-                        </span>
-                      </div>
-
-                      <h4 style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>
-                        ID: <code style={{ color: 'var(--code-color)' }}>{ex.exchange_id}</code>
-                      </h4>
-
-                      <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>
-                        Supported Cred: <strong>{ex.supported_cred_id}</strong>
-                      </p>
-
-                      <div className="sub-card">
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '4px' }}>Subject Data:</span>
-                        <pre style={{ fontSize: '0.75rem', padding: '6px' }}>
-                          {JSON.stringify(ex.credential_subject, null, 2)}
-                        </pre>
-                      </div>
-                    </div>
-
-                    <button
-                      className="btn btn-secondary btn-sm"
-                      style={{ width: '100%' }}
-                      onClick={() => setSelectedExchange(ex)}
-                    >
-                      <QrCode className="w-4 h-4" /> View Offer QR Code
-                    </button>
-                  </div>
+                        <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{new Date(ex.createdAt).toLocaleString()}</span>
+                      </span>
+                      <strong style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-primary)' }}>
+                        <code style={{ color: 'var(--code-color)' }}>{ex.exchange_id}</code>
+                      </strong>
+                      <span style={{ display: 'block', marginTop: '4px', fontSize: '0.85rem', color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        Supported Cred: {ex.supported_cred_id}
+                      </span>
+                    </span>
+                    <span style={{ flexShrink: 0, color: 'var(--text-secondary)', fontSize: '0.85rem' }}>View details <QrCode className="w-4 h-4" style={{ verticalAlign: 'middle', marginLeft: '6px' }} /></span>
+                  </button>
                 ))}
               </div>
             )}
           </div>
 
-          {/* Selected Exchange QR Modal */}
+          {/* Selected Exchange Details Modal */}
           {selectedExchange && (
-            <div className="card" style={{ borderColor: 'var(--border-focus)' }}>
-              <div className="card-title" style={{ justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <QrCode className="w-5 h-5" />
-                  <span>Exchange Offer QR Code: <code>{selectedExchange.exchange_id}</code></span>
+            <div
+              role="presentation"
+              onClick={(event) => { if (event.target === event.currentTarget) setSelectedExchange(null); }}
+              style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', background: 'rgba(0, 0, 0, 0.68)' }}
+            >
+              <div role="dialog" aria-modal="true" aria-labelledby="exchange-modal-title" className="card" style={{ width: 'min(100%, 960px)', maxHeight: '90vh', overflowY: 'auto', borderColor: 'var(--border-focus)', boxShadow: '0 24px 80px rgba(0,0,0,.45)' }}>
+                <div className="card-title" style={{ justifyContent: 'space-between', gap: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                    <QrCode className="w-5 h-5" />
+                    <span id="exchange-modal-title">Exchange details</span>
+                  </div>
+                  <button className="btn btn-secondary btn-sm" onClick={() => setSelectedExchange(null)}>Close</button>
                 </div>
 
-                <button className="btn btn-secondary btn-sm" onClick={() => setSelectedExchange(null)}>
-                  Close
-                </button>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px', marginTop: '20px' }}>
+                  <div>
+                    <p style={{ marginBottom: '14px', color: 'var(--text-secondary)' }}>Created {new Date(selectedExchange.createdAt).toLocaleString()}</p>
+                    <p style={{ marginBottom: '14px', overflowWrap: 'anywhere' }}>Exchange ID: <code>{selectedExchange.exchange_id}</code></p>
+                    <p style={{ marginBottom: '16px', overflowWrap: 'anywhere' }}>Supported Credential: <strong>{selectedExchange.supported_cred_id}</strong></p>
+                    <div className="sub-card">
+                      <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '8px' }}>Request payload</span>
+                      <pre style={{ fontSize: '0.85rem', padding: '12px', maxHeight: '360px', overflow: 'auto', whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>
+                        {JSON.stringify(selectedExchange.request_payload || { supported_cred_id: selectedExchange.supported_cred_id, credential_subject: selectedExchange.credential_subject }, null, 2)}
+                      </pre>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px', minWidth: 0 }}>
+                    {selectedExchange.credential_offer ? (
+                      <>
+                        <div className="qr-wrapper" style={{ padding: '18px' }}>
+                          <QRCodeSVG value={selectedExchange.credential_offer} size={260} level="M" includeMargin={true} />
+                        </div>
+                        <textarea readOnly aria-label="Credential offer URI" value={selectedExchange.credential_offer} rows={4} style={{ width: '100%', resize: 'vertical', fontSize: '0.75rem', fontFamily: 'monospace' }} />
+                        <button
+                          className="btn btn-primary btn-sm"
+                          style={{ width: '100%' }}
+                          onClick={() => copyToClipboard(selectedExchange.credential_offer, selectedExchange.exchange_id)}
+                        >
+                          {copiedId === selectedExchange.exchange_id ? <CheckCircle className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                          {copiedId === selectedExchange.exchange_id ? 'Copied Offer URI!' : 'Copy Offer URI'}
+                        </button>
+                      </>
+                    ) : (
+                      <div className="banner banner-info" style={{ width: '100%' }}><span>No credential offer string stored for this exchange.</span></div>
+                    )}
+                  </div>
+                </div>
               </div>
-
-              {selectedExchange.credential_offer ? (
-                <div className="qr-container" style={{ marginTop: '16px' }}>
-                  <div className="qr-wrapper">
-                    <QRCodeSVG value={selectedExchange.credential_offer} size={240} level="M" includeMargin={true} />
-                  </div>
-
-                  <div style={{ textAlign: 'center', width: '100%' }}>
-                    <input
-                      type="text"
-                      readOnly
-                      value={selectedExchange.credential_offer}
-                      style={{
-                        width: '100%',
-                        fontSize: '0.75rem',
-                        fontFamily: 'monospace',
-                        marginBottom: '10px',
-                      }}
-                    />
-                    <button
-                      className="btn btn-primary btn-sm"
-                      style={{ width: '100%' }}
-                      onClick={() => copyToClipboard(selectedExchange.credential_offer, selectedExchange.exchange_id)}
-                    >
-                      {copiedId === selectedExchange.exchange_id ? (
-                        <CheckCircle className="w-4 h-4" />
-                      ) : (
-                        <Copy className="w-4 h-4" />
-                      )}
-                      {copiedId === selectedExchange.exchange_id ? 'Copied Offer URI!' : 'Copy Offer URI'}
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="banner banner-info">
-                  <span>No credential offer string stored for this exchange.</span>
-                </div>
-              )}
             </div>
           )}
         </>
+      )}
+      {/* ── DID PICKER MODAL ───────────────────────────────────────────────── */}
+      {showDidModal && (
+        <div
+          role="presentation"
+          onClick={(e) => { if (e.target === e.currentTarget) setShowDidModal(false); }}
+          style={{ position: 'fixed', inset: 0, zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', background: 'rgba(0,0,0,0.70)' }}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="did-picker-modal-title"
+            className="card"
+            style={{ width: 'min(100%, 680px)', maxHeight: '80vh', overflowY: 'auto', borderColor: 'var(--border-focus)', boxShadow: '0 24px 80px rgba(0,0,0,.5)', display: 'flex', flexDirection: 'column', gap: 0 }}
+          >
+            {/* Header */}
+            <div className="card-title" style={{ justifyContent: 'space-between', gap: '16px', marginBottom: '16px' }}>
+              <span id="did-picker-modal-title" style={{ fontWeight: 600 }}>Select Holder / Issuance DID</span>
+              <button className="btn btn-secondary btn-sm" onClick={() => setShowDidModal(false)}>
+                <X className="w-4 h-4" /> Close
+              </button>
+            </div>
+
+            {/* Stored DID rows */}
+            {didRecords.length > 0 ? (
+              <div style={{ display: 'grid', gap: '8px', marginBottom: '20px' }}>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '4px' }}>Stored DIDs</p>
+                {didRecords.map((d: any) => (
+                  <button
+                    key={d.did}
+                    type="button"
+                    onClick={() => {
+                      setDid(d.did);
+                      setCustomDidInput('');
+                      setShowDidModal(false);
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '12px',
+                      padding: '10px 14px',
+                      background: did === d.did ? 'rgba(56,189,248,0.12)' : 'var(--card-bg, rgba(255,255,255,0.04))',
+                      border: `1px solid ${did === d.did ? '#38bdf8' : 'var(--border-color, rgba(255,255,255,0.10))'}`,
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      width: '100%',
+                    }}
+                  >
+                    <span style={{ minWidth: 0, flex: 1 }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                        <span className="badge badge-green" style={{ flexShrink: 0 }}>{d.method || 'did'}</span>
+                        {d.posture && <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{d.posture}</span>}
+                        {did === d.did && <CheckCircle className="w-3 h-3" style={{ color: '#38bdf8', flexShrink: 0 }} />}
+                      </span>
+                      <code style={{ fontSize: '0.78rem', color: 'var(--code-color, #38bdf8)', wordBreak: 'break-all', whiteSpace: 'pre-wrap' }}>
+                        {d.did}
+                      </code>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="banner banner-info" style={{ marginBottom: '16px' }}>
+                <Info className="w-4 h-4" />
+                <span>No stored DIDs found. Enter a custom DID below.</span>
+              </div>
+            )}
+
+            {/* Divider */}
+            <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '16px' }}>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '8px' }}>Or enter a custom DID</p>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <input
+                  type="text"
+                  value={customDidInput}
+                  onChange={(e) => setCustomDidInput(e.target.value)}
+                  placeholder="did:key:... or did:peer:..."
+                  style={{ flex: 1 }}
+                  autoFocus={didRecords.length === 0}
+                />
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  disabled={!customDidInput.trim()}
+                  onClick={() => {
+                    setDid(customDidInput.trim());
+                    setShowDidModal(false);
+                  }}
+                >
+                  Use
+                </button>
+              </div>
+            </div>
+
+            {/* None option */}
+            <button
+              type="button"
+              className="btn btn-secondary"
+              style={{ marginTop: '12px', width: '100%' }}
+              onClick={() => {
+                setDid('');
+                setCustomDidInput('');
+                setShowDidModal(false);
+              }}
+            >
+              <X className="w-4 h-4" /> Use none (clear)
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );
